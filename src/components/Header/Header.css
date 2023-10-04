@@ -1,0 +1,7 @@
+#header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    padding: 16px 48px;
+    border-bottom: 1px solid #eee;
+}

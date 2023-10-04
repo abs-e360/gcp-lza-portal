@@ -1,0 +1,10 @@
+#tos {
+    .tos-body {
+        align-items: center;
+        text-align: justify;
+
+        li {
+            list-style-type: none;
+        }
+    }
+}
