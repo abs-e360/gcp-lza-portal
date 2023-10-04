@@ -1,7 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { Button, Radio } from "@mui/joy";
+import { Button, Card, Radio } from "@mui/joy";
 
 import { setTermsAccepted } from "../../store/store";
 import TOS from "../../components/TOS/TOS";
@@ -14,7 +14,9 @@ const Terms = () => {
 
     return (
         <div>
-            <TOS />
+            <Card>
+                <TOS />
+            </Card>
             <div id="terms-button-bar">
                 <div>
                     <Radio
