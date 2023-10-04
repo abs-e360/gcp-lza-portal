@@ -1,15 +1,24 @@
 import { configureStore, createSlice } from '@reduxjs/toolkit'
 
+
+export interface EnvSubData {
+    primaryRegionCIDR: string;
+    secondaryRegionCIDR: string;
+    // Shared env will not have this
+    serviceCIDR: string;
+    serviceIP: string;
+};
+
+export interface EnvData {
+    base: EnvSubData;
+    restricted: EnvSubData;
+};
+
 export interface OnboardState {
-    termsAccepted: boolean;
     firstName: string;
     lastName: string;
     email: string;
     orgName: string;
-    billingStreetAddress: string;
-    billingCity: string;
-    billingState: string;
-    billingZip: string;
     domain: string;
     networkCIDR: string;
     billingID: string;
@@ -22,38 +31,97 @@ export interface OnboardState {
     token: string;
     primaryRegion: string;
     secondaryRegion: string;
-    development: any,
-    shared: any,
-    nonProduction: any,
-    production: any
+    environments: {
+        shared: EnvData;
+        development: EnvData;
+        nonProduction: EnvData;
+        production: EnvData;
+    }
 };
 
-const initialState: OnboardState = {
+export interface RootState {
+    termsAccepted: boolean;
+    onboard: OnboardState;
+};
+
+const initialState: RootState = {
     termsAccepted: false,
-    firstName: '',
-    lastName: '',
-    email: '',
-    domain: '',
-    networkCIDR: '',
-    orgName: '',
-    billingStreetAddress: '',
-    billingCity: '',
-    billingState: '',
-    billingZip: '',
-    billingID: '',
-    accountID: '',
-    groups: {
-        orgAdmins: 'grp-gcp-organization-admins',
-        billingAdmins: 'grp-gcp-billing-admins',
-        monitoringWorkspaceAdmins: 'grp-gcp-monitoring-admins',
-    },
-    token: '',
-    primaryRegion: 'us-west2',
-    secondaryRegion: 'us-central1',
-    development: {},
-    shared: {},
-    nonProduction: {},
-    production: {}
+    onboard: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        orgName: '',
+        domain: '',
+        networkCIDR: '',
+        billingID: '',
+        accountID: '',
+        groups: {
+            orgAdmins: 'grp-gcp-organization-admins',
+            billingAdmins: 'grp-gcp-billing-admins',
+            monitoringWorkspaceAdmins: 'grp-gcp-monitoring-admins',
+        },
+        token: '',
+        primaryRegion: 'us-west2',
+        secondaryRegion: 'us-central1',
+        environments: {
+            shared: {
+                base: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+                restricted: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+            },
+            development: {
+                base: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+                restricted: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+            },
+            nonProduction: {
+                base: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+                restricted: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+            },
+            production: {
+                base: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+                restricted: {
+                    primaryRegionCIDR: '',
+                    secondaryRegionCIDR: '',
+                    serviceCIDR: '',
+                    serviceIP: '',
+                },
+            },
+        }
+    }
 };
 
 export const onboardSlice = createSlice({
@@ -61,11 +129,12 @@ export const onboardSlice = createSlice({
     initialState,
     reducers: {
         setOnboardState: (state, action) => {
-            // const newValue: OnboardState = action.payload;
-            // state = newValue;
-            if (action.payload.groups) {
-                state.groups = action.payload.groups;
-            }
+            const newValue: OnboardState = action.payload;
+            state.onboard = newValue;
+        },
+        setEnvironments: (state, action) => {
+            const envs = action.payload;
+            state.onboard.environments = envs;
         },
         resetOnboardState: (state) => {
             state = initialState;
@@ -83,4 +152,4 @@ export const store = configureStore({
     devTools: process.env.NODE_ENV !== 'production'
 });
 
-export const { setOnboardState, resetOnboardState, setTermsAccepted } = onboardSlice.actions;
+export const { setOnboardState, resetOnboardState, setTermsAccepted, setEnvironments } = onboardSlice.actions;

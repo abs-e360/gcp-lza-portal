@@ -16,19 +16,19 @@ const Environment = (props: any) => {
                 <tbody>
                     <tr style={{ textAlign: 'left' }}>
                         <td>Primary Region CIDR</td>
-                        <td>{props.base.primary}</td>
-                        <td>{props.restricted.primary}</td>
+                        <td>{props.base.primaryRegionCIDR}</td>
+                        <td>{props.restricted.primaryRegionCIDR}</td>
                     </tr>
                     <tr style={{ textAlign: 'left' }}>
                         <td>Secondary Region CIDR</td>
-                        <td>{props.base.secondary}</td>
-                        <td>{props.restricted.secondary}</td>
+                        <td>{props.base.secondaryRegionCIDR}</td>
+                        <td>{props.restricted.secondaryRegionCIDR}</td>
                     </tr>
                     {props.base.service &&
                         <tr style={{ textAlign: 'left' }}>
                             <td>Service CIDR</td>
-                            <td>{props.base.service}</td>
-                            <td>{props.restricted.service}</td>
+                            <td>{props.base.serviceCIDR}</td>
+                            <td>{props.restricted.serviceCIDR}</td>
                         </tr>
                     }
                     <tr style={{ textAlign: 'left' }}>

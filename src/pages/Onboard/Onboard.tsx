@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
     FormLabel, Button, Card, Typography, Switch, Textarea, Tooltip, FormHelperText,
@@ -11,6 +11,7 @@ import { InfoOutlined, } from '@mui/icons-material';
 
 import Environment from '../../components/Environment/Environment';
 import './Onboard.css';
+import { setEnvironments, setOnboardState } from '../../store/store';
 
 const gcpRegions = [
     "asia-east2",
@@ -51,6 +52,16 @@ const gcpRegions = [
     "us-east5",
     "us-west3",
 ];
+
+const envList: string[] = ['shared', 'development', 'nonProduction', 'production'];
+const keyList: string[][] = [
+    ['base', 'primaryRegionCIDR'], ['restricted', 'primaryRegionCIDR'],
+    ['base', 'secondaryRegionCIDR'], ['restricted', 'secondaryRegionCIDR']
+];
+
+const isValidEmail = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
 const isValidDomain = (domain: string): boolean => {
     domain = domain.trim();
@@ -99,28 +110,288 @@ const isValidIPv4 = (ipAddress: string): boolean => {
     return true;
 }
 
-const ContactConfig = (props: any) => {
-    const [firstName, setFirstName] = useState(props.firstName);
-    const [lastName, setLastName] = useState(props.lastName);
-    const [email, setEmail] = useState(props.email);
+const isValidSlash15 = (cidr: string): boolean => {
+    const baseOctets = cidr.split('.');
+    if (parseInt(baseOctets[2]) % 2 === 0) return true;
+    return false;
+}
 
-    const [domain, setDomain] = useState(props.domain);
-    const [billingID, setBillingID] = useState(props.billingID);
-    const [accountID, setAccountID] = useState(props.accountID);
+const getServiceIps = (cidr: string, lastOctet: Number): string[] => {
+    const staticsBaseOctets = cidr.split('.');
+    const thirdOctet = parseInt(staticsBaseOctets[2]);
 
-    const [orgAdmins, setOrgAdmins] = useState(props.groups.orgAdmins);
-    const [billingAdmins, setBillingAdmins] = useState(props.groups.billingAdmins);
-    const [monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins] = useState(props.groups.monitoringWorkspaceAdmins);
-    // const [workspaceAdmins, setWorkspaceAdmins] = useState(props.workspaceAdmins);
-    const [token, setToken] = useState(props.token);
+    let serviceIPs: string[] = [];
+    for (let i = thirdOctet; i < 256; i += 4) {
+        serviceIPs.push(`${staticsBaseOctets[0]}.${staticsBaseOctets[1]}.${i}.${lastOctet}`);
+    }
+    return serviceIPs
+}
 
-    // const [primaryRegion, setPrimaryRegion] = useState(props.primaryRegion);
-    // const [secondaryRegion, setSecondaryRegion] = useState(props.secondaryRegion);
+// Takes /15 CIDR and returns a list of /19 CIDRs
+const slash19sFromSlash15 = (cidr: string): string[] => {
+    const cidrs: string[] = [];
+    const baseOctets = cidr.split('.');
+
+    const baseOctet = parseInt(baseOctets[1]);
+    for (let i = baseOctet; i < baseOctet + 2; i++) {
+        for (let j = 0; j < 256; j += 32) {
+            const newCIDR = `${baseOctets[0]}.${i}.${j}.0/19`;
+            cidrs.push(newCIDR);
+        }
+    }
+
+    return cidrs;
+}
+
+const slash21sFromSlash19 = (cidr: string): string[] => {
+    const cidrs: string[] = [];
+    const baseOctets = cidr.split('.');
+
+    const baseOctet = parseInt(baseOctets[2]);
+    for (let i = baseOctet; i < 256; i += 8) {
+        const newCIDR = `${baseOctets[0]}.${baseOctets[1]}.${i}.0/21`;
+        cidrs.push(newCIDR);
+    }
+
+    return cidrs;
+};
+
+const buildNetworkStructure = (cidr: string) => {
+
+    // Structure holding the network information
+    let nets: any = {
+        shared: {
+            base: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceIP: '',
+                serviceCIDR: '',
+            },
+            restricted: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceIP: '',
+                serviceCIDR: '',
+            },
+        },
+        development: {
+            base: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+            restricted: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+        },
+        nonProduction: {
+            base: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+            restricted: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+        },
+        production: {
+            base: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+            restricted: {
+                primaryRegionCIDR: '',
+                secondaryRegionCIDR: '',
+                serviceCIDR: '',
+                serviceIP: '',
+            },
+        },
+    };
+
+    if (!isValidIPv4(cidr) || !isValidSlash15(cidr)) return;
+
+    const s19 = slash19sFromSlash15(cidr);
+    for (let i = 0; i < 4; i++) {
+        const s21 = slash21sFromSlash19(s19[i]);
+        const k = keyList[i];
+
+        for (let j = 0; j < 4; j++) {
+            nets[envList[j]][k[0]][k[1]] = s21[j];
+        }
+    }
+
+    // Service IPs
+    const lastOctet: Number = 5;
+    const serviceIps = getServiceIps(s19[s19.length - 1], lastOctet);
+    for (let i = 0; i < 4; i++) {
+        nets[envList[i % envList.length]].base.serviceIP = serviceIps[i];
+    }
+    for (let i = 4; i < 8; i++) {
+        nets[envList[i % envList.length]].restricted.serviceIP = serviceIps[i];
+    }
+
+    const baseServiceCIDRs = slash21sFromSlash19(s19[s19.length - 3]);
+    for (let i = 1; i < 4; i++) {
+        nets[envList[i]].base.serviceCIDR = baseServiceCIDRs[i - 1];
+    }
+
+    const restrictedServiceCIDRs = slash21sFromSlash19(s19[s19.length - 2]);
+    for (let i = 1; i < 4; i++) {
+        nets[envList[i]].restricted.serviceCIDR = restrictedServiceCIDRs[i - 1];
+    }
+    return nets;
+}
+
+const NetworkBreakdown = (props: any) => {
+    // const environments = buildNetworkStructure(props.networkCIDR);
+    // console.log(environments);
+    const { environments } = props;
+
+    return (
+        <Card style={{ padding: '16px 32px', borderRadius: '4px' }} color='primary'>
+            <Environment name='Shared' {...environments.shared} />
+            <Environment name='Development' {...environments.development} />
+            <Environment name='Non-Production' {...environments.nonProduction} />
+            <Environment name='Production' {...environments.production} />
+        </Card>
+    );
+}
+
+const RegionConfig = (props: any) => {
+    const { primaryRegion, secondaryRegion, setPrimaryRegion, setSecondaryRegion } = props;
+
+    return (
+        <div style={{ display: 'flex', textAlign: 'left' }}>
+            <div style={{ flexGrow: 1, padding: '8px' }}>
+                <FormLabel>Primary Region</FormLabel>
+                <div className='region-item'>
+                    <Autocomplete error={primaryRegion === secondaryRegion}
+                        id="primaryRegion"
+                        options={gcpRegions}
+                        getOptionLabel={(option) => option}
+                        variant='soft'
+                        size='lg'
+                        onChange={(_, value) => setPrimaryRegion(value)}
+                        value={primaryRegion}
+                    />
+                </div>
+            </div>
+            <div style={{ flexGrow: 1, padding: '8px' }}>
+                <div className='region-item'>
+                    <FormLabel>Secondary Region</FormLabel>
+                    <Autocomplete error={primaryRegion === secondaryRegion}
+                        id="secondaryRegion"
+                        options={gcpRegions}
+                        getOptionLabel={(option) => option}
+                        variant='soft'
+                        size='lg'
+                        onChange={(_, value) => setSecondaryRegion(value)}
+                        value={secondaryRegion}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Onboard = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    const { termsAccepted, onboard } = useSelector((state: any) => state.onboard);
+
+    useEffect(() => {
+        // Check if terms of service have been accepted.  if not redirect to terms page.
+        if (termsAccepted === false) {
+            navigate('/terms');
+        }
+    }, [termsAccepted, navigate]);
+
+
+    const [firstName, setFirstName] = useState(onboard.firstName);
+    const [lastName, setLastName] = useState(onboard.lastName);
+    const [email, setEmail] = useState(onboard.email);
+    const [orgName, setOrgName] = useState(onboard.orgName);
+
+    const [domain, setDomain] = useState(onboard.domain);
+    const [billingID, setBillingID] = useState(onboard.billingID);
+    const [accountID, setAccountID] = useState(onboard.accountID);
+
+    const [orgAdmins, setOrgAdmins] = useState(onboard.groups.orgAdmins);
+    const [billingAdmins, setBillingAdmins] = useState(onboard.groups.billingAdmins);
+    const [monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins] = useState(onboard.groups.monitoringWorkspaceAdmins);
+    const [token, setToken] = useState(onboard.token);
+
+    const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
+    const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
 
     const [useExistingAcct, setUseExistingAcct] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
 
-    const [networkCIDR, setNetworkCIDR] = useState(props.networkCIDR);
+    const [networkCIDR, setNetworkCIDR] = useState(onboard.networkCIDR);
+
+    const environments = buildNetworkStructure(networkCIDR);
+
+    const proceedToCheckout = () => {
+        dispatch(setOnboardState({
+            termsAccepted: true,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            orgName: orgName,
+            domain: domain,
+            networkCIDR: networkCIDR,
+            billingID: billingID,
+            accountID: accountID,
+            groups: {
+                orgAdmins: orgAdmins,
+                billingAdmins: billingAdmins,
+                monitoringWorkspaceAdmins: monitoringWorkspaceAdmins,
+            },
+            token: token,
+            primaryRegion: primaryRegion,
+            secondaryRegion: secondaryRegion,
+        }));
+
+        dispatch(setEnvironments(environments));
+
+        // window.location.href = 'https://e360-landing-zone-checkout.web.app/';
+        navigate('/review');
+    }
+
+    const canProceed = (): boolean => {
+        if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR) {
+            return false;
+        }
+
+        if (!isValidDomain(domain)) {
+            return false;
+        }
+
+        if (!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)) {
+            return false;
+        }
+
+        if (!useExistingAcct) {
+            return true;
+        }
+
+        if (!billingID || !accountID || !token || !orgAdmins || !billingAdmins || !monitoringWorkspaceAdmins) {
+            return false;
+        }
+
+        return true;
+    }
 
     return (
         <div style={{ paddingTop: '16px' }}>
@@ -141,16 +412,21 @@ const ContactConfig = (props: any) => {
             <div className='input-single'>
                 <FormLabel>Email</FormLabel>
                 <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
-                    value={email} onChange={(e) => setEmail(e.target.value)} />
+                    value={email} onChange={(e) => setEmail(e.target.value)}
+                    error={!isValidEmail(email)}
+                />
             </div>
             {/* <div> */}
             <div style={{ padding: '8px' }}>
                 <FormLabel>Organization Name</FormLabel>
-                <Input size='lg' variant='soft' />
-                <FormHelperText>This will be used to create the GCP billing account</FormHelperText>
+                <Input size='lg' variant='soft' required
+                    value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
+                <FormHelperText>This will be used to create your GCP billing account</FormHelperText>
             </div>
             <h2>Configuration</h2>
-            <RegionConfig primaryRegion={props.primaryRegion} secondaryRegion={props.secondaryRegion} />
+            <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
+                setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
+            />
             <div style={{ display: 'flex' }}>
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Domain</FormLabel>
@@ -164,8 +440,9 @@ const ContactConfig = (props: any) => {
                     <Input size='lg' placeholder='0.0.0.0' variant='soft' endDecorator={<span> / 15 </span>}
                         value={networkCIDR} required
                         onChange={(e) => setNetworkCIDR(e.target.value)}
-                        error={!isValidIPv4(networkCIDR)}
+                        error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}
                     />
+                    <FormHelperText>CIDR range for your complete GCP presence</FormHelperText>
                 </div>
             </div>
 
@@ -174,7 +451,7 @@ const ContactConfig = (props: any) => {
                     <Button variant='plain' size='sm' onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
                 </div>
                 {showDetails &&
-                    <NetworkBreakdown networkCIDR={networkCIDR} />
+                    <NetworkBreakdown environments={environments} />
                 }
             </div>
 
@@ -251,245 +528,14 @@ const ContactConfig = (props: any) => {
                             </div>
                         </div>
                     </div>
-                    {/* <div className='input-pair'>
-                        <div>
-                            <FormLabel>WorkspaceAdmins</FormLabel>
-                            <Input type="text" name="workspaceAdmins" size='lg' variant='soft'
-                                value={workspaceAdmins} onChange={(e) => setWorkspaceAdmins(e.target.value)} />
-                        </div>
-                        <div>
-                            <FormLabel>MonitoringAdmins</FormLabel>
-                            <Input type="text" name="monitoringAdmins" size='lg' variant='soft'
-                                value={monitoringAdmins} onChange={(e) => setMonitoringAdmins(e.target.value)} />
-                        </div>
-                    </div> */}
-                    {/* <div className='input-single'>
-                        <FormLabel>Token</FormLabel>
-                        <Input type="text" name="token" required size='lg' variant='soft'
-                            value={token} onChange={(e) => setToken(e.target.value)} />
-                    </div> */}
                 </div>
             }
 
-        </div>
-    );
-}
-
-const getServiceIps = (cidr: string, lastOctet: Number): string[] => {
-    const staticsBaseOctets = cidr.split('.');
-    const thirdOctet = parseInt(staticsBaseOctets[2]);
-
-    let serviceIPs: string[] = [];
-    for (let i = thirdOctet; i < 256; i += 4) {
-        serviceIPs.push(`${staticsBaseOctets[0]}.${staticsBaseOctets[1]}.${i}.${lastOctet}`);
-    }
-    return serviceIPs
-}
-
-const envList: string[] = ['shared', 'dev', 'nonprod', 'prod'];
-const keyList: string[][] = [
-    ['base', 'primary'], ['restricted', 'primary'],
-    ['base', 'secondary'], ['restricted', 'secondary']
-];
-
-const NetworkBreakdown = (props: any) => {
-    let nets: any = {
-        shared: {
-            base: {
-                primary: '',
-                secondary: '',
-                serviceIP: '',
-            },
-            restricted: {
-                primary: '',
-                secondary: '',
-                serviceIP: '',
-            },
-        },
-        dev: {
-            base: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-            restricted: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-        },
-        nonprod: {
-            base: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-            restricted: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-        },
-        prod: {
-            base: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-            restricted: {
-                primary: '',
-                secondary: '',
-                service: '',
-                serviceIP: '',
-            },
-        },
-    };
-
-    const buildIndex = (cidr: string) => {
-        if (!isValidIPv4(cidr)) return;
-
-        // TODO: validate its a slash 15 boundary
-
-        const s19 = slash19sFromSlash15(cidr);
-        for (let i = 0; i < 4; i++) {
-            const s21 = slash21sFromSlash19(s19[i]);
-            const k = keyList[i];
-
-            for (let j = 0; j < 4; j++) {
-                nets[envList[j]][k[0]][k[1]] = s21[j];
-            }
-        }
-
-        const lastOctet: Number = 5;
-        const serviceIps = getServiceIps(s19[s19.length - 1], lastOctet);
-        for (let i = 0; i < 4; i++) {
-            nets[envList[i % envList.length]].base.serviceIP = serviceIps[i];
-        }
-        for (let i = 4; i < 8; i++) {
-            nets[envList[i % envList.length]].restricted.serviceIP = serviceIps[i];
-        }
-
-        const baseServiceCIDRs = slash21sFromSlash19(s19[s19.length - 3]);
-        for (let i = 1; i < 4; i++) {
-            nets[envList[i]].base.service = baseServiceCIDRs[i - 1];
-        }
-
-        const restrictedServiceCIDRs = slash21sFromSlash19(s19[s19.length - 2]);
-        for (let i = 1; i < 4; i++) {
-            nets[envList[i]].restricted.service = restrictedServiceCIDRs[i - 1];
-        }
-    }
-
-    buildIndex(props.networkCIDR);
-    console.log(nets);
-
-    return (
-        <Card style={{ padding: '16px 32px', borderRadius: '4px' }} color='primary'>
-            <Environment name='Shared' {...nets.shared} />
-            <Environment name='Development' {...nets.dev} />
-            <Environment name='Non-Production' {...nets.nonprod} />
-            <Environment name='Production' {...nets.prod} />
-        </Card>
-    );
-}
-
-const RegionConfig = (props: any) => {
-    const [primaryRegion, setPrimaryRegion] = useState(props.primaryRegion);
-    const [secondaryRegion, setSecondaryRegion] = useState(props.secondaryRegion);
-
-    return (
-        <div style={{ display: 'flex', textAlign: 'left' }}>
-            <div style={{ flexGrow: 1, padding: '8px' }}>
-                <FormLabel>Primary Region</FormLabel>
-                <div className='region-item'>
-                    <Autocomplete error={primaryRegion === secondaryRegion}
-                        id="primaryRegion"
-                        options={gcpRegions}
-                        getOptionLabel={(option) => option}
-                        variant='soft'
-                        size='lg'
-                        onChange={(_, value) => setPrimaryRegion(value)}
-                        value={primaryRegion}
-                    />
-                </div>
-            </div>
-            <div style={{ flexGrow: 1, padding: '8px' }}>
-                <div className='region-item'>
-                    <FormLabel>Secondary Region</FormLabel>
-                    <Autocomplete error={primaryRegion === secondaryRegion}
-                        id="secondaryRegion"
-                        options={gcpRegions}
-                        getOptionLabel={(option) => option}
-                        variant='soft'
-                        size='lg'
-                        onChange={(_, value) => setSecondaryRegion(value)}
-                        value={secondaryRegion}
-                    />
-                </div>
+            <div className='onboard-button-bar'>
+                <Button type="button" size='lg' onClick={proceedToCheckout} disabled={!canProceed()}>
+                    Proceed to Checkout</Button>
             </div>
         </div>
-    );
-};
-
-// Takes /15 CIDR and returns a list of /19 CIDRs
-const slash19sFromSlash15 = (cidr: string): string[] => {
-    const cidrs: string[] = [];
-    const baseOctets = cidr.split('.');
-
-    const baseOctet = parseInt(baseOctets[1]);
-    for (let i = baseOctet; i < baseOctet + 2; i++) {
-        for (let j = 0; j < 256; j += 32) {
-            const newCIDR = `${baseOctets[0]}.${i}.${j}.0/19`;
-            cidrs.push(newCIDR);
-        }
-    }
-
-    return cidrs;
-}
-
-const slash21sFromSlash19 = (cidr: string): string[] => {
-    const cidrs: string[] = [];
-    const baseOctets = cidr.split('.');
-
-    const baseOctet = parseInt(baseOctets[2]);
-    for (let i = baseOctet; i < 256; i += 8) {
-        const newCIDR = `${baseOctets[0]}.${baseOctets[1]}.${i}.0/21`;
-        cidrs.push(newCIDR);
-    }
-
-    return cidrs;
-};
-
-const Onboard = () => {
-    const navigate = useNavigate();
-    const onboard = useSelector((state: any) => state.onboard);
-
-
-    useEffect(() => {
-        // Check if terms of service have been accepted.  if not redirect to terms page.
-        if (onboard.termsAccepted === false) {
-            navigate('/terms');
-        }
-    }, [onboard.termsAccepted, navigate]);
-
-    const onClickReview = () => {
-        navigate('/review');
-    }
-
-    return (
-        <div>
-            <form id='onboarding-form'>
-                <ContactConfig {...onboard} />
-                <div className='onboard-button-bar'>
-                    <Button type="button" size='lg' onClick={onClickReview}>Review</Button>
-                </div>
-            </form >
-        </div >
     );
 }
 
