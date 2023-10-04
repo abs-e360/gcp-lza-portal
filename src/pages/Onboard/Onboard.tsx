@@ -410,7 +410,7 @@ const Onboard = () => {
                 </div>
             </div>
             <div className='input-single'>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Contact Email</FormLabel>
                 <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
                     value={email} onChange={(e) => setEmail(e.target.value)}
                     error={!isValidEmail(email)}
