@@ -11,7 +11,7 @@ import { InfoOutlined, } from '@mui/icons-material';
 
 import Environment from '../../components/Environment/Environment';
 import './Onboard.css';
-import { setEnvironments, setOnboardState } from '../../store/store';
+import { setOnboardState } from '../../store/store';
 import { BuyNowButton } from '@shopify/hydrogen-react';
 
 const PRODUCT_VARIENT = "gid://shopify/ProductVariant/46703466381595";
@@ -221,7 +221,7 @@ const buildNetworkStructure = (cidr: string) => {
         },
     };
 
-    if (!isValidIPv4(cidr) || !isValidSlash15(cidr)) return;
+    if (!isValidIPv4(cidr) || !isValidSlash15(cidr)) return nets;
 
     const s19 = slash19sFromSlash15(cidr);
     for (let i = 0; i < 4; i++) {
@@ -252,6 +252,7 @@ const buildNetworkStructure = (cidr: string) => {
     for (let i = 1; i < 4; i++) {
         nets[envList[i]].restricted.serviceCIDR = restrictedServiceCIDRs[i - 1];
     }
+
     return nets;
 }
 
@@ -346,7 +347,7 @@ const Onboard = () => {
     const environments = buildNetworkStructure(networkCIDR);
 
     const proceedToCheckout = () => {
-        dispatch(setOnboardState({
+        const onboardingPayload = {
             termsAccepted: true,
             firstName: firstName,
             lastName: lastName,
@@ -364,12 +365,10 @@ const Onboard = () => {
             token: token,
             primaryRegion: primaryRegion,
             secondaryRegion: secondaryRegion,
-        }));
+            environments: environments,
+        };
 
-        dispatch(setEnvironments(environments));
-
-        // window.location.href = 'https://e360-landing-zone-checkout.web.app/';
-        // navigate('/review');
+        dispatch(setOnboardState(onboardingPayload));
     }
 
     const canProceed = (): boolean => {
@@ -466,7 +465,9 @@ const Onboard = () => {
                 </div>
                 <div style={{ display: 'flex' }}>
                     <span style={{ padding: '0 4px' }}>Use an existing GCP account </span>
-                    <Switch checked={useExistingAcct} onChange={(e) => setUseExistingAcct(e.target.checked)} />
+                    <Switch checked={useExistingAcct}
+                        onChange={(e) => setUseExistingAcct(e.target.checked)}
+                    />
                 </div>
             </div>
 
@@ -540,6 +541,7 @@ const Onboard = () => {
                 <BuyNowButton variantId={PRODUCT_VARIENT} className='buy-now-button'
                     disabled={!canProceed()}
                     onClick={proceedToCheckout}
+                // attributes={{key:'data', value: 
                 >
                     Proceed to Checkout
                 </BuyNowButton>
