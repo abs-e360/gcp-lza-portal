@@ -12,6 +12,9 @@ import { InfoOutlined, } from '@mui/icons-material';
 import Environment from '../../components/Environment/Environment';
 import './Onboard.css';
 import { setEnvironments, setOnboardState } from '../../store/store';
+import { BuyNowButton } from '@shopify/hydrogen-react';
+
+const PRODUCT_VARIENT = "gid://shopify/ProductVariant/46703466381595";
 
 const gcpRegions = [
     "asia-east2",
@@ -366,7 +369,7 @@ const Onboard = () => {
         dispatch(setEnvironments(environments));
 
         // window.location.href = 'https://e360-landing-zone-checkout.web.app/';
-        navigate('/review');
+        // navigate('/review');
     }
 
     const canProceed = (): boolean => {
@@ -532,8 +535,12 @@ const Onboard = () => {
             }
 
             <div className='onboard-button-bar'>
-                <Button type="button" size='lg' onClick={proceedToCheckout} disabled={!canProceed()}>
-                    Proceed to Checkout</Button>
+                <BuyNowButton variantId={PRODUCT_VARIENT} className='buy-now-button'
+                    disabled={!canProceed()}
+                    onClick={proceedToCheckout}
+                >
+                    Proceed to Checkout
+                </BuyNowButton>
             </div>
         </div>
     );
