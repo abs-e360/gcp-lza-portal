@@ -451,7 +451,9 @@ const Onboard = () => {
 
             <div style={{ padding: '8px' }}>
                 <div style={{ textAlign: 'right', padding: '8px 0' }}>
-                    <Button variant='plain' size='sm' onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
+                    <Tooltip title='Display network CIDRs across all environments'>
+                        <Button variant='plain' size='sm' onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
+                    </Tooltip>
                 </div>
                 {showDetails &&
                     <NetworkBreakdown environments={environments} />
