@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
     FormLabel, Button, Card, Typography, Switch, Textarea, Tooltip, FormHelperText,
 } from '@mui/joy';
 import Autocomplete from '@mui/joy/Autocomplete';
-import { InfoOutlined, } from '@mui/icons-material';
-
 import Environment from '../../components/Environment/Environment';
+import { BuyNowButton } from '@shopify/hydrogen-react';
 
-import { setId, setOnboardState } from '../../store/store';
-import { service } from '../../service/service';
+import './Review.css';
 
-import './Onboard.css';
+const PRODUCT_VARIENT = "gid://shopify/ProductVariant/46703466381595";
 
 const gcpRegions = [
     "asia-east2",
@@ -256,8 +254,6 @@ const buildNetworkStructure = (cidr: string) => {
 }
 
 const NetworkBreakdown = (props: any) => {
-    // const environments = buildNetworkStructure(props.networkCIDR);
-    // console.log(environments);
     const { environments } = props;
 
     return (
@@ -282,7 +278,7 @@ const RegionConfig = (props: any) => {
                         id="primaryRegion"
                         options={gcpRegions}
                         getOptionLabel={(option) => option}
-                        variant='soft'
+                        variant='plain'
                         size='lg'
                         onChange={(_, value) => setPrimaryRegion(value)}
                         value={primaryRegion}
@@ -296,7 +292,7 @@ const RegionConfig = (props: any) => {
                         id="secondaryRegion"
                         options={gcpRegions}
                         getOptionLabel={(option) => option}
-                        variant='soft'
+                        variant='plain'
                         size='lg'
                         onChange={(_, value) => setSecondaryRegion(value)}
                         value={secondaryRegion}
@@ -307,11 +303,11 @@ const RegionConfig = (props: any) => {
     );
 };
 
-const Onboard = () => {
-    const dispatch = useDispatch();
+const Review = () => {
     const navigate = useNavigate();
 
-    const { termsAccepted, onboard } = useSelector((state: any) => state.onboard);
+    const { termsAccepted, onboard, consistentId } = useSelector((state: any) => state.onboard);
+    console.log(termsAccepted, onboard, consistentId);
 
     useEffect(() => {
         // Check if terms of service have been accepted.  if not redirect to terms page.
@@ -337,96 +333,39 @@ const Onboard = () => {
 
     const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
     const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
-
-    const [useExistingAcct, setUseExistingAcct] = useState(false);
-    const [showDetails, setShowDetails] = useState(false);
-
     const [networkCIDR, setNetworkCIDR] = useState(onboard.networkCIDR);
+
+    const [useExistingAcct, setUseExistingAcct] = useState(onboard.token !== '');
+    const [showDetails, setShowDetails] = useState(false);
 
     const environments = buildNetworkStructure(networkCIDR);
 
-    const proceedToReview = () => {
-        const onboardingPayload = {
-            // termsAccepted: true,
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
-            orgName: orgName,
-            domain: domain,
-            networkCIDR: networkCIDR,
-            billingID: billingID,
-            accountID: accountID,
-            groups: {
-                orgAdmins: orgAdmins,
-                billingAdmins: billingAdmins,
-                monitoringWorkspaceAdmins: monitoringWorkspaceAdmins,
-            },
-            token: token,
-            primaryRegion: primaryRegion,
-            secondaryRegion: secondaryRegion,
-            environments: environments,
-        };
-
-        dispatch(setOnboardState(onboardingPayload));
-        service.post('/onboard', onboardingPayload).then((response) => {
-            // console.log(response);
-            dispatch(setId(response.id));
-            navigate('/review');
-        }).catch((error) => {
-            console.log(error);
-        });
-    }
-
-    const canProceed = (): boolean => {
-        if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR) {
-            return false;
-        }
-
-        if (!isValidDomain(domain)) {
-            return false;
-        }
-
-        if (!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)) {
-            return false;
-        }
-
-        if (!useExistingAcct) {
-            return true;
-        }
-
-        if (!billingID || !accountID || !token || !orgAdmins || !billingAdmins || !monitoringWorkspaceAdmins) {
-            return false;
-        }
-
-        return true;
-    }
-
     return (
         <div style={{ paddingTop: '16px' }}>
-            <h1>Landing Zone Provisioning</h1>
+            <h1>Review</h1>
             <h2>Contact</h2>
             <div className='input-pair'>
                 <div>
                     <FormLabel>First name</FormLabel>
-                    <Input type="text" name="firstName" required autoFocus size='lg' variant='soft'
+                    <Input readOnly type="text" name="firstName" required autoFocus size='lg' variant='plain'
                         value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div>
                     <FormLabel>Last name</FormLabel>
-                    <Input type="text" name="lastName" required size='lg' variant='soft'
+                    <Input readOnly type="text" name="lastName" required size='lg' variant='plain'
                         value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
             </div>
             <div className='input-single'>
                 <FormLabel>Contact Email</FormLabel>
-                <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
+                <Input readOnly type="text" name="email" required placeholder="user@example.com" size='lg' variant='plain'
                     value={email} onChange={(e) => setEmail(e.target.value)}
                     error={!isValidEmail(email)}
                 />
             </div>
             <div style={{ padding: '8px' }}>
                 <FormLabel>Organization Name</FormLabel>
-                <Input size='lg' variant='soft' required
+                <Input readOnly size='lg' variant='plain' required
                     value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
                 <FormHelperText>This will be used to create your GCP billing account</FormHelperText>
             </div>
@@ -437,14 +376,14 @@ const Onboard = () => {
             <div style={{ display: 'flex' }}>
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Domain</FormLabel>
-                    <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
+                    <Input readOnly type="text" name="domain" required placeholder="example.com" size='lg' variant='plain'
                         value={domain} onChange={(e) => setDomain(e.target.value)}
                         error={!isValidDomain(domain)}
                     />
                 </div>
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Network CIDR</FormLabel>
-                    <Input size='lg' placeholder='0.0.0.0' variant='soft' endDecorator={<span> / 15 </span>}
+                    <Input readOnly size='lg' placeholder='0.0.0.0' variant='plain' endDecorator={<span> / 15 </span>}
                         value={networkCIDR} required
                         onChange={(e) => setNetworkCIDR(e.target.value)}
                         error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}
@@ -470,7 +409,7 @@ const Onboard = () => {
                 </div>
                 <div style={{ display: 'flex' }}>
                     <span style={{ padding: '0 4px' }}>Use an existing GCP account </span>
-                    <Switch checked={useExistingAcct}
+                    <Switch checked={useExistingAcct} disabled
                         onChange={(e) => setUseExistingAcct(e.target.checked)}
                     />
                 </div>
@@ -493,46 +432,41 @@ const Onboard = () => {
                     <div className='input-pair'>
                         <div>
                             <FormLabel>Account ID</FormLabel>
-                            <Input type="text" name="accountID" size='lg' variant='soft' required
+                            <Input readOnly type="text" name="accountID" size='lg' variant='plain' required
                                 value={accountID} onChange={(e) => setAccountID(e.target.value)} />
                         </div>
                         <div>
                             <FormLabel>Billing ID</FormLabel>
-                            <Input type="text" name="billingID" size='lg' variant='soft' required
+                            <Input readOnly type="text" name="billingID" size='lg' variant='plain' required
                                 value={billingID} onChange={(e) => setBillingID(e.target.value)} />
                         </div>
                     </div>
                     <div style={{ display: 'flex' }}>
                         <div style={{ width: '50%', padding: '8px' }}>
                             <FormLabel>Token</FormLabel>
-                            <Textarea name="token" required size='lg' variant='soft'
+                            <Textarea name="token" required size='lg' variant='plain'
                                 style={{ minHeight: '214px', fontFamily: 'monospace' }}
-                                endDecorator={
-                                    <Tooltip title={`gcloud auth print-access-token ${accountID ? accountID : '{account-id}'} --lifetime=7200`} placement='right' variant='outlined'>
-                                        <InfoOutlined fontSize='small' />
-                                    </Tooltip>
-                                }
                                 value={token} onChange={(e) => setToken(e.target.value)}
                             />
                         </div>
                         <div style={{ width: '50%', padding: '8px' }}>
                             <div className='group-item'>
                                 <FormLabel>Org Admins Group</FormLabel>
-                                <Input type="text" name="orgAdmins" size='lg' variant='soft' required
+                                <Input readOnly type="text" name="orgAdmins" size='lg' variant='plain' required
                                     value={orgAdmins} onChange={(e) => setOrgAdmins(e.target.value)}
                                     endDecorator={<span>@{domain}</span>}
                                 />
                             </div>
                             <div className='group-item'>
                                 <FormLabel>Billing Admins Group</FormLabel>
-                                <Input type="text" name="billingAdmins" size='lg' variant='soft' required
+                                <Input readOnly type="text" name="billingAdmins" size='lg' variant='plain' required
                                     value={billingAdmins} onChange={(e) => setBillingAdmins(e.target.value)}
                                     endDecorator={<span>@{domain}</span>}
                                 />
                             </div>
                             <div className='group-item'>
                                 <FormLabel>Workspace Monitoring Admins Group</FormLabel>
-                                <Input type="text" name="monitoringAdmins" size='lg' variant='soft'
+                                <Input readOnly type="text" name="monitoringAdmins" size='lg' variant='plain'
                                     value={monitoringWorkspaceAdmins} onChange={(e) => setMonitoringWorkspaceAdmins(e.target.value)}
                                     endDecorator={<span>@{domain}</span>}
                                 />
@@ -543,13 +477,14 @@ const Onboard = () => {
             }
 
             <div className='onboard-button-bar'>
-                <Button variant='outlined' size='lg' onClick={() => proceedToReview()}
-                    disabled={!canProceed()}
+                <BuyNowButton variantId={PRODUCT_VARIENT} className='buy-now-button'
+                    attributes={[{ key: 'data', value: JSON.stringify({ id: consistentId }) }]}
                 >
-                    Review</Button>
+                    Proceed to Checkout
+                </BuyNowButton>
             </div>
         </div>
     );
 }
 
-export default Onboard;
+export default Review;

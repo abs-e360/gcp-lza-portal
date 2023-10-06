@@ -8,6 +8,7 @@ import Home from './pages/Home/Home';
 import Onboard from './pages/Onboard/Onboard';
 
 import './App.css';
+import Review from './pages/Review';
 
 const storefrontAccessToken = 'a27bfad6dc1f16b508756d85644f637e';
 const storefrontDomain = 'https://enterprise-360.myshopify.com';
@@ -25,6 +26,7 @@ function App() {
             <Route path="" element={<Layout />}>
               <Route path="/terms" element={<Terms />} />
               <Route path="/onboard" element={<Onboard />} />
+              <Route path="/review" element={<Review />} />
               <Route path="/" element={<Home />} />
             </Route>
           </Routes>

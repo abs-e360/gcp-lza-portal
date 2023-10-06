@@ -40,11 +40,13 @@ export interface OnboardState {
 };
 
 export interface RootState {
+    consistentId: string;
     termsAccepted: boolean;
     onboard: OnboardState;
 };
 
 const initialState: RootState = {
+    consistentId: '',
     termsAccepted: false,
     onboard: {
         firstName: '',
@@ -132,9 +134,8 @@ export const onboardSlice = createSlice({
             const newValue: OnboardState = action.payload;
             state.onboard = newValue;
         },
-        setEnvironments: (state, action) => {
-            const envs = action.payload;
-            state.onboard.environments = envs;
+        setId: (state, action) => {
+            state.consistentId = action.payload;
         },
         resetOnboardState: (state) => {
             state = initialState;
@@ -152,4 +153,4 @@ export const store = configureStore({
     devTools: process.env.NODE_ENV !== 'production'
 });
 
-export const { setOnboardState, resetOnboardState, setTermsAccepted, setEnvironments } = onboardSlice.actions;
+export const { setOnboardState, resetOnboardState, setTermsAccepted, setId } = onboardSlice.actions;
