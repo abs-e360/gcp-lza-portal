@@ -194,12 +194,12 @@ const buildNetworkStructure = (cidr: string) => {
 
     const baseServiceCIDRs = slash21sFromSlash19(s19[s19.length - 3]);
     for (let i = 1; i < 4; i++) {
-        nets[envList[i]].base.serviceCIDR = baseServiceCIDRs[i - 1];
+        nets[envList[i]].base.serviceCIDR = baseServiceCIDRs[i];
     }
 
     const restrictedServiceCIDRs = slash21sFromSlash19(s19[s19.length - 2]);
     for (let i = 1; i < 4; i++) {
-        nets[envList[i]].restricted.serviceCIDR = restrictedServiceCIDRs[i - 1];
+        nets[envList[i]].restricted.serviceCIDR = restrictedServiceCIDRs[i];
     }
 
     console.log(nets);
