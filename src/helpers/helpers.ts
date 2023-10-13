@@ -27,8 +27,7 @@ const slash19sFromSlash15 = (cidr: string): string[] => {
     }
 
     return cidrs;
-}
-
+};
 
 const envList: string[] = ['shared', 'development', 'nonProduction', 'production'];
 const keyList: string[][] = [
@@ -176,6 +175,12 @@ const buildNetworkStructure = (cidr: string) => {
             nets[envList[j]][k[0]][k[1]] = s21[j];
         }
     }
+
+    // Make shared all /24s
+    nets.shared.base.primaryRegionCIDR = nets.shared.base.primaryRegionCIDR.replace('/21', '/24');
+    nets.shared.base.secondaryRegionCIDR = nets.shared.base.secondaryRegionCIDR.replace('/21', '/24');
+    nets.shared.restricted.primaryRegionCIDR = nets.shared.restricted.primaryRegionCIDR.replace('/21', '/24');
+    nets.shared.restricted.secondaryRegionCIDR = nets.shared.restricted.secondaryRegionCIDR.replace('/21', '/24');
 
     // Service IPs
     const lastOctet: Number = 5;
