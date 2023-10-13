@@ -24,7 +24,7 @@ const Environment = (props: any) => {
                         <td>{props.base.secondaryRegionCIDR}</td>
                         <td>{props.restricted.secondaryRegionCIDR}</td>
                     </tr>
-                    {props.base.service &&
+                    {props.base.serviceCIDR &&
                         <tr style={{ textAlign: 'left' }}>
                             <td>Service CIDR</td>
                             <td>{props.base.serviceCIDR}</td>
