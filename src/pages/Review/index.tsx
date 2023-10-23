@@ -10,10 +10,7 @@ import Environment from '../../components/Environment/Environment';
 import RegionConfig from '../../components/RegionConfig';
 import { BuyNowButton } from '@shopify/hydrogen-react';
 
-import {
-    buildNetworkStructure, isValidDomain, isValidEmail,
-    isValidIPv4, isValidSlash15
-} from '../../helpers/helpers';
+import { buildNetworkStructure } from '../../helpers/helpers';
 
 import './Review.css';
 
@@ -46,23 +43,23 @@ const Review = () => {
     }, [termsAccepted, navigate]);
 
 
-    const [firstName, setFirstName] = useState(onboard.firstName);
-    const [lastName, setLastName] = useState(onboard.lastName);
-    const [email, setEmail] = useState(onboard.email);
-    const [orgName, setOrgName] = useState(onboard.orgName);
+    const firstName = onboard.firstName;
+    const lastName = onboard.lastName;
+    const email = onboard.email;
+    const orgName = onboard.orgName;
+    const domain = onboard.domain;
 
-    const [domain, setDomain] = useState(onboard.domain);
-    const [billingID, setBillingID] = useState(onboard.billingID);
-    const [accountID, setAccountID] = useState(onboard.accountID);
+    const billingID = onboard.billingID;
+    const accountID = onboard.accountID;
 
-    const [orgAdmins, setOrgAdmins] = useState(onboard.groups.orgAdmins);
-    const [billingAdmins, setBillingAdmins] = useState(onboard.groups.billingAdmins);
-    const [monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins] = useState(onboard.groups.monitoringWorkspaceAdmins);
-    const [token, setToken] = useState(onboard.token);
+    const orgAdmins = onboard.groups.orgAdmins;
+    const billingAdmins = onboard.groups.billingAdmins;
+    const monitoringWorkspaceAdmins = onboard.groups.monitoringWorkspaceAdmins;
+    const token = onboard.token;
 
     const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
     const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
-    const [networkCIDR, setNetworkCIDR] = useState(onboard.networkCIDR);
+    const networkCIDR = onboard.networkCIDR;
 
     const [useExistingAcct, setUseExistingAcct] = useState(onboard.token !== '');
     const [showDetails, setShowDetails] = useState(false);
@@ -76,47 +73,35 @@ const Review = () => {
             <div className='input-pair'>
                 <div>
                     <FormLabel>First name</FormLabel>
-                    <Input readOnly type="text" name="firstName" required autoFocus size='lg' variant='plain'
-                        value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                    <Typography className='field-default'>{firstName}</Typography>
                 </div>
                 <div>
                     <FormLabel>Last name</FormLabel>
-                    <Input readOnly type="text" name="lastName" required size='lg' variant='plain'
-                        value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    <Typography className='field-default'>{lastName}</Typography>
                 </div>
             </div>
             <div className='input-single'>
                 <FormLabel>Contact Email</FormLabel>
-                <Input readOnly type="text" name="email" required placeholder="user@example.com" size='lg' variant='plain'
-                    value={email} onChange={(e) => setEmail(e.target.value)}
-                    error={!isValidEmail(email)}
-                />
+                <Typography className='field-default'>{email}</Typography>
             </div>
             <div style={{ padding: '8px' }}>
                 <FormLabel>Organization Name</FormLabel>
-                <Input readOnly size='lg' variant='plain' required
-                    value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
+                <Typography className='field-default'>{orgName}</Typography>
                 <FormHelperText>This will be used to create your GCP billing account</FormHelperText>
             </div>
             <h2>Configuration</h2>
-            <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
+            <RegionConfig readOnly
+                primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
                 setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
             />
             <div style={{ display: 'flex' }}>
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Domain</FormLabel>
-                    <Input readOnly type="text" name="domain" required placeholder="example.com" size='lg' variant='plain'
-                        value={domain} onChange={(e) => setDomain(e.target.value)}
-                        error={!isValidDomain(domain)}
-                    />
+                    <Typography className='field-default'>{domain}</Typography>
                 </div>
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Network CIDR</FormLabel>
-                    <Input readOnly size='lg' placeholder='0.0.0.0' variant='plain' endDecorator={<span> / 15 </span>}
-                        value={networkCIDR} required
-                        onChange={(e) => setNetworkCIDR(e.target.value)}
-                        error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}
-                    />
+                    <Typography className='field-default'>{networkCIDR}</Typography>
                     <FormHelperText>CIDR range for your complete GCP presence</FormHelperText>
                 </div>
             </div>
@@ -161,44 +146,33 @@ const Review = () => {
                     <div className='input-pair'>
                         <div>
                             <FormLabel>Account ID</FormLabel>
-                            <Input readOnly type="text" name="accountID" size='lg' variant='plain' required
-                                value={accountID} onChange={(e) => setAccountID(e.target.value)} />
+                            <Typography className='field-default'>{accountID}</Typography>
                         </div>
                         <div>
                             <FormLabel>Billing ID</FormLabel>
-                            <Input readOnly type="text" name="billingID" size='lg' variant='plain' required
-                                value={billingID} onChange={(e) => setBillingID(e.target.value)} />
+                            <Typography className='field-default'>{billingID}</Typography>
                         </div>
                     </div>
                     <div style={{ display: 'flex' }}>
                         <div style={{ width: '50%', padding: '8px' }}>
                             <FormLabel>Token</FormLabel>
-                            <Textarea name="token" required size='lg' variant='plain'
+                            <Textarea name="token" required size='lg' variant='plain' readOnly
                                 style={{ minHeight: '214px', fontFamily: 'monospace' }}
-                                value={token} onChange={(e) => setToken(e.target.value)}
+                                value={token}
                             />
                         </div>
                         <div style={{ width: '50%', padding: '8px' }}>
                             <div className='group-item'>
                                 <FormLabel>Org Admins Group</FormLabel>
-                                <Input readOnly type="text" name="orgAdmins" size='lg' variant='plain' required
-                                    value={orgAdmins} onChange={(e) => setOrgAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
-                                />
+                                <Typography className='field-default'>{orgAdmins}@{domain}</Typography>
                             </div>
                             <div className='group-item'>
                                 <FormLabel>Billing Admins Group</FormLabel>
-                                <Input readOnly type="text" name="billingAdmins" size='lg' variant='plain' required
-                                    value={billingAdmins} onChange={(e) => setBillingAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
-                                />
+                                <Typography className='field-default'>{billingAdmins}@{domain}</Typography>
                             </div>
                             <div className='group-item'>
                                 <FormLabel>Workspace Monitoring Admins Group</FormLabel>
-                                <Input readOnly type="text" name="monitoringAdmins" size='lg' variant='plain'
-                                    value={monitoringWorkspaceAdmins} onChange={(e) => setMonitoringWorkspaceAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
-                                />
+                                <Typography className='field-default'>{monitoringWorkspaceAdmins}@{domain}</Typography>
                             </div>
                         </div>
                     </div>

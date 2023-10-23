@@ -95,3 +95,8 @@ button.buy-now-button:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
+
+.field-default {
+    padding: 8px 0;
+    text-align: left;
+}

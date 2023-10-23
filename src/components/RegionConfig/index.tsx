@@ -45,7 +45,7 @@ const gcpRegions = [
 ];
 
 const RegionConfig = (props: any) => {
-    const { primaryRegion, secondaryRegion, setPrimaryRegion, setSecondaryRegion } = props;
+    const { primaryRegion, secondaryRegion, setPrimaryRegion, setSecondaryRegion, readOnly } = props;
 
     return (
         <div style={{ display: 'flex', textAlign: 'left' }}>
@@ -53,6 +53,7 @@ const RegionConfig = (props: any) => {
                 <FormLabel>Primary Region</FormLabel>
                 <div className='region-item'>
                     <Autocomplete error={primaryRegion === secondaryRegion}
+                        readOnly={readOnly}
                         id="primaryRegion"
                         options={gcpRegions}
                         getOptionLabel={(option) => option}
@@ -67,6 +68,7 @@ const RegionConfig = (props: any) => {
                 <div className='region-item'>
                     <FormLabel>Secondary Region</FormLabel>
                     <Autocomplete error={primaryRegion === secondaryRegion}
+                        readOnly={readOnly}
                         id="secondaryRegion"
                         options={gcpRegions}
                         getOptionLabel={(option) => option}

@@ -3,9 +3,12 @@ import { configureStore, createSlice } from '@reduxjs/toolkit'
 
 export interface EnvSubData {
     primaryRegionCIDR: string;
+
     secondaryRegionCIDR: string;
+
     // Shared env will not have this
     serviceCIDR: string;
+
     serviceIP: string;
 };
 
@@ -40,8 +43,13 @@ export interface OnboardState {
 };
 
 export interface RootState {
+    // Consistent hash id to identify uniqueness of payload
     consistentId: string;
+
+    // Terms and conditions accepted
     termsAccepted: boolean;
+
+    // Onboard state
     onboard: OnboardState;
 };
 
