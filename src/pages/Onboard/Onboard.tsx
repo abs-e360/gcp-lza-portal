@@ -156,6 +156,12 @@ const Onboard = () => {
                     value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
                 <FormHelperText>This will be used to create your GCP billing account</FormHelperText>
             </div>
+
+            {/*
+                TODO
+                Add address auto-complete
+            */}
+
             <h2>Configuration</h2>
             <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
                 setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
@@ -234,11 +240,6 @@ const Onboard = () => {
                             <FormLabel>Token</FormLabel>
                             <Textarea name="token" required size='lg' variant='soft'
                                 style={{ minHeight: '214px', fontFamily: 'monospace' }}
-                                // endDecorator={
-                                //     <Tooltip title={`gcloud auth print-access-token ${accountID ? accountID : '{account-id}'} --lifetime=7200`} placement='right' variant='outlined'>
-                                //         <InfoOutlined fontSize='small' />
-                                //     </Tooltip>
-                                // }
                                 value={token} onChange={(e) => setToken(e.target.value)}
                             />
                             <FormHelperText style={{ padding: '8px 0' }}><InfoOutlined fontSize='small' /> gcloud auth print-access-token {accountID ? accountID : '{account-id}'} --lifetime=7200</FormHelperText>
