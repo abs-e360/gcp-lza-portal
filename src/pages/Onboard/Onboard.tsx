@@ -225,6 +225,7 @@ const Onboard = () => {
                         <div>
                             <FormLabel>Billing ID</FormLabel>
                             <Input type="text" name="billingID" size='lg' variant='soft' required
+                                placeholder='012345-6789AB-CDEF01'
                                 value={billingID} onChange={(e) => setBillingID(e.target.value)} />
                         </div>
                     </div>
