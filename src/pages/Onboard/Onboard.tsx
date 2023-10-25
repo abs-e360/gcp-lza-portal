@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
-    FormLabel, Button, Card, Typography, Switch, Textarea, Tooltip, FormHelperText,
+    FormLabel, Button, Card, Typography, Textarea, Tooltip, FormHelperText, FormControl, LinearProgress,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
 import { InfoOutlined, } from '@mui/icons-material';
@@ -19,6 +19,7 @@ import {
 } from '../../helpers/helpers';
 
 import './Onboard.css';
+import GooglePlacesAutocomplete, { geocodeByPlaceId } from 'react-google-places-autocomplete';
 
 const NetworkBreakdown = (props: any) => {
     const { environments } = props;
@@ -50,9 +51,9 @@ const Onboard = () => {
     const [firstName, setFirstName] = useState(onboard.firstName);
     const [lastName, setLastName] = useState(onboard.lastName);
     const [email, setEmail] = useState(onboard.email);
-    const [orgName, setOrgName] = useState(onboard.orgName);
+    const [orgName, setOrgName] = useState(onboard.organization.name);
+    const [domain, setDomain] = useState(onboard.organization.domain);
 
-    const [domain, setDomain] = useState(onboard.domain);
     const [billingID, setBillingID] = useState(onboard.billingID);
     const [accountID, setAccountID] = useState(onboard.accountID);
 
@@ -63,22 +64,34 @@ const Onboard = () => {
 
     const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
     const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
-
-    const [useExistingAcct, setUseExistingAcct] = useState(false);
-    const [showDetails, setShowDetails] = useState(false);
-
     const [networkCIDR, setNetworkCIDR] = useState(onboard.networkCIDR);
+
+    const [showDetails, setShowDetails] = useState(false);
+    const [hasCloudIdentity, setHasCloudIdentity] = useState(false);
+    const [domainHelperText, setDomainHelperText] = useState('e.g. example.com');
+    const [showProgress, setShowProgress] = useState(false);
+
+    const [streetAddress, setStreetAddress] = useState(onboard.organization.streetAddress);
+    const [locality, setLocality] = useState(onboard.organization.locality);
+    const [postalCode, setPostalCode] = useState(onboard.organization.postalCode);
+    const [administrativeArea, setAdministrativeArea] = useState(onboard.organization.administrativeArea);
 
     const environments = buildNetworkStructure(networkCIDR);
 
     const proceedToReview = () => {
         const onboardingPayload = {
-            // termsAccepted: true,
             firstName: firstName,
             lastName: lastName,
             email: email,
-            orgName: orgName,
-            domain: domain,
+            organization: {
+                name: orgName,
+                domain: domain,
+                streetAddress: streetAddress,
+                locality: locality,
+                administrativeArea: administrativeArea,
+                postalCode: postalCode,
+                regionCode: onboard.organization.regionCode, // only default supported
+            },
             networkCIDR: networkCIDR,
             billingID: billingID,
             accountID: accountID,
@@ -95,7 +108,6 @@ const Onboard = () => {
 
         dispatch(setOnboardState(onboardingPayload));
         service.post('/onboard', onboardingPayload).then((response) => {
-            // console.log(response);
             dispatch(setId(response.id));
             navigate('/review');
         }).catch((error) => {
@@ -104,7 +116,7 @@ const Onboard = () => {
     }
 
     const canProceed = (): boolean => {
-        if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR) {
+        if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR || !postalCode) {
             return false;
         }
 
@@ -116,7 +128,7 @@ const Onboard = () => {
             return false;
         }
 
-        if (!useExistingAcct) {
+        if (!hasCloudIdentity) {
             return true;
         }
 
@@ -127,155 +139,240 @@ const Onboard = () => {
         return true;
     }
 
+    const handleDomainChange = (e: any) => {
+        setHasCloudIdentity(false);
+        setDomain(e.target.value);
+        setDomainHelperText('e.g. example.com');
+    }
+
+    const checkDomainCloudIdentity = () => {
+        if (!isValidDomain(domain)) return;
+        setShowProgress(true);
+
+        service.get('/cloud-identity?domain=' + domain).then((response) => {
+            console.log(response);
+            setHasCloudIdentity(true);
+            setDomainHelperText('Cloud Identity found!');
+            setShowProgress(false);
+        }).catch((error) => {
+            console.log(error);
+            setHasCloudIdentity(false);
+            setDomainHelperText('');
+            setShowProgress(false);
+        });
+    }
+
+    const parseAddress = (selected: any) => {
+        console.log(selected);
+        for (var i = 0; i < selected.address_components.length; i++) {
+            var addrComp = selected.address_components[i];
+            for (var j = 0; j < addrComp.types.length; j++) {
+                if (addrComp.types[j] === "postal_code") {
+                    setPostalCode(addrComp.long_name);
+                } else if (addrComp.types[j] === "route") {
+                    setStreetAddress(addrComp.long_name);
+                } else if (addrComp.types[j] === "locality") {
+                    setLocality(addrComp.long_name);
+                } else if (addrComp.types[j] === "administrative_area_level_1") {
+                    setAdministrativeArea(addrComp.long_name);
+                }
+            }
+        }
+    }
+
+    const processAddress = (place: any) => {
+        // Get potential postal code matches from the place id.
+        geocodeByPlaceId(place?.value?.place_id).then((results) => {
+            parseAddress(results[0]);
+        });
+    }
+
     return (
         <div style={{ paddingTop: '16px' }}>
             <h1>Landing Zone Provisioning</h1>
-            <h2>Contact</h2>
-            <div className='input-pair'>
-                <div>
-                    <FormLabel>First name</FormLabel>
-                    <Input type="text" name="firstName" required autoFocus size='lg' variant='soft'
-                        value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </div>
-                <div>
-                    <FormLabel>Last name</FormLabel>
-                    <Input type="text" name="lastName" required size='lg' variant='soft'
-                        value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </div>
-            </div>
-            <div className='input-single'>
-                <FormLabel>Contact Email</FormLabel>
-                <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
-                    value={email} onChange={(e) => setEmail(e.target.value)}
-                    error={!isValidEmail(email)}
-                />
-            </div>
-            <div style={{ padding: '8px' }}>
-                <FormLabel>Organization Name</FormLabel>
-                <Input size='lg' variant='soft' required
-                    value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
-                <FormHelperText>This will be used to create your GCP billing account</FormHelperText>
-            </div>
-
-            {/*
-                TODO
-                Add address auto-complete
-            */}
-
-            <h2>Configuration</h2>
-            <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
-                setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
-            />
-            <div style={{ display: 'flex' }}>
-                <div style={{ width: '50%', padding: '8px' }}>
-                    <FormLabel>Domain</FormLabel>
-                    <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
-                        value={domain} onChange={(e) => setDomain(e.target.value)}
-                        error={!isValidDomain(domain)}
-                    />
-                </div>
-                <div style={{ width: '50%', padding: '8px' }}>
-                    <FormLabel>Network CIDR</FormLabel>
-                    <Input size='lg' placeholder='0.0.0.0' variant='soft' endDecorator={<span> / 15 </span>}
-                        value={networkCIDR} required
-                        onChange={(e) => setNetworkCIDR(e.target.value)}
-                        error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}
-                    />
-                    <FormHelperText>CIDR range for your complete GCP presence</FormHelperText>
-                </div>
-            </div>
-
-            <div style={{ padding: '8px' }}>
-                <div style={{ textAlign: 'right', padding: '8px 0' }}>
-                    <Tooltip title='Display network CIDRs across all environments'>
-                        <Button variant='plain' size='sm' onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
-                    </Tooltip>
-                </div>
-                {showDetails &&
-                    <NetworkBreakdown environments={environments} />
-                }
-            </div>
-
-            <div id='account-configuration'>
-                <div>
-                    <h2>Account</h2>
-                </div>
-                <div style={{ display: 'flex' }}>
-                    <span style={{ padding: '0 4px' }}>Use an existing GCP account </span>
-                    <Switch checked={useExistingAcct}
-                        onChange={(e) => setUseExistingAcct(e.target.checked)}
-                    />
-                </div>
-            </div>
-
-            {!useExistingAcct &&
-                <div style={{ padding: '16px' }}>
-                    <Card size='lg' color='primary'>
-                        <Typography color='primary'>
-                            A new GCP account will be created for you.
-                        </Typography>
-                        <Typography color='primary'>
-                            You will be billed directly by <a href='https://www.e360.com/'>e360</a>.
-                        </Typography>
-                    </Card>
-                </div>
-            }
-            {useExistingAcct &&
-                <div>
-                    <div className='input-pair'>
-                        <div>
-                            <FormLabel>Account ID</FormLabel>
-                            <Input type="text" name="accountID" size='lg' variant='soft' required
-                                value={accountID} onChange={(e) => setAccountID(e.target.value)} />
-                        </div>
-                        <div>
-                            <FormLabel>Billing ID</FormLabel>
-                            <Input type="text" name="billingID" size='lg' variant='soft' required
-                                placeholder='012345-6789AB-CDEF01'
-                                value={billingID} onChange={(e) => setBillingID(e.target.value)} />
-                        </div>
+            <div style={{ textAlign: 'left' }}>
+                <h2>Contact</h2>
+                <div className='input-pair'>
+                    <div>
+                        <FormLabel>First name</FormLabel>
+                        <Input type="text" name="firstName" required autoFocus size='lg' variant='soft'
+                            value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                     </div>
-                    <div style={{ display: 'flex' }}>
-                        <div style={{ width: '50%', padding: '8px' }}>
-                            <FormLabel>Token</FormLabel>
-                            <Textarea name="token" required size='lg' variant='soft'
-                                style={{ minHeight: '214px', fontFamily: 'monospace' }}
-                                value={token} onChange={(e) => setToken(e.target.value)}
+                    <div>
+                        <FormLabel>Last name</FormLabel>
+                        <Input type="text" name="lastName" required size='lg' variant='soft'
+                            value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    </div>
+                </div>
+                <div className='input-single'>
+                    <FormLabel>Contact Email</FormLabel>
+                    <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
+                        value={email} onChange={(e) => setEmail(e.target.value)}
+                        error={!isValidEmail(email)}
+                    />
+                </div>
+                <div style={{ padding: '8px' }}>
+                    <FormControl>
+                        <FormLabel>Organization Name</FormLabel>
+                        <Input size='lg' variant='soft' required
+                            value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
+                        {/* <FormHelperText>Used for your GCP billing account</FormHelperText> */}
+                    </FormControl>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ textAlign: 'left', minWidth: '50%', padding: '8px' }}>
+                        <FormControl>
+                            <FormLabel>Postal Address</FormLabel>
+                            <GooglePlacesAutocomplete
+                                apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+                                apiOptions={{ language: 'en', region: 'US' }}
+                                minLengthAutocomplete={3}
+                                autocompletionRequest={{
+                                    componentRestrictions: {
+                                        country: 'us',
+                                    },
+                                    types: ['address'],
+                                }}
+                                selectProps={{
+                                    placeholder: 'Postal Address',
+                                    onChange: (place: any) => { processAddress(place) }
+                                }}
                             />
-                            <FormHelperText style={{ padding: '8px 0' }}><InfoOutlined fontSize='small' /> gcloud auth print-access-token {accountID ? accountID : '{account-id}'} --lifetime=7200</FormHelperText>
+                        </FormControl>
+                    </div>
+                    <div style={{ padding: '8px' }}>
+                        <FormControl>
+                            <FormLabel>Postal Code</FormLabel>
+                            <Input size='lg' variant='soft' required
+                                value={postalCode} onChange={(e) => { setPostalCode(e.target.value) }}
+                                readOnly
+                            />
+                        </FormControl>
+                    </div>
+                </div>
+
+                <h2>Configuration</h2>
+                <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
+                    setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
+                />
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ padding: '8px', minWidth: '50%' }}>
+                        <FormControl error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}>
+                            <FormLabel>Network CIDR</FormLabel>
+                            <Input size='lg' placeholder='0.0.0.0' variant='soft' endDecorator={<span> / 15 </span>}
+                                value={networkCIDR} required
+                                onChange={(e) => setNetworkCIDR(e.target.value)}
+                            />
+                            <FormHelperText>CIDR range for your complete GCP presence</FormHelperText>
+                        </FormControl>
+                    </div>
+                    <div style={{ textAlign: 'right', padding: '8px 0' }}>
+                        <Tooltip title='Display network CIDRs across all environments'>
+                            <Button variant='plain' size='lg'
+                                disabled={!isValidIPv4(networkCIDR)}
+                                onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
+                        </Tooltip>
+                    </div>
+                </div>
+
+                <div style={{ padding: '8px' }}>
+                    {showDetails && <NetworkBreakdown environments={environments} />}
+                </div>
+
+                <div id='account-configuration'>
+                    <div>
+                        <h2>Account</h2>
+                    </div>
+                </div>
+
+                <div style={{ padding: '8px' }}>
+                    <FormControl
+                        error={!isValidDomain(domain)} //color={hasCloudIdentity ? 'success' : 'primary'}
+                    >
+                        <FormLabel>Domain</FormLabel>
+                        <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
+                            value={domain} onChange={handleDomainChange}
+                            onBlur={checkDomainCloudIdentity}
+                            endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
+                        />
+                        <FormHelperText>
+                            {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
+                        </FormHelperText>
+                    </FormControl>
+
+                </div>
+
+                {!hasCloudIdentity &&
+                    <div style={{ padding: '16px', textAlign: 'center' }}>
+                        <Card size='lg' color='primary'>
+                            <Typography color='primary'>
+                                A new Google Identity and GCP account will be provisioned.
+                            </Typography>
+                            <Typography color='primary'>
+                                You will be billed directly by <a href='https://www.e360.com/'>e360</a>.
+                            </Typography>
+                        </Card>
+                    </div>
+                }
+                {hasCloudIdentity &&
+                    <div>
+                        <div className='input-pair'>
+                            <div>
+                                <FormLabel>Account ID</FormLabel>
+                                <Input type="text" name="accountID" size='lg' variant='soft' required
+                                    value={accountID} onChange={(e) => setAccountID(e.target.value)} />
+                            </div>
+                            <div>
+                                <FormLabel>Billing ID</FormLabel>
+                                <Input type="text" name="billingID" size='lg' variant='soft' required
+                                    placeholder='012345-6789AB-CDEF01'
+                                    value={billingID} onChange={(e) => setBillingID(e.target.value)} />
+                            </div>
                         </div>
-                        <div style={{ width: '50%', padding: '8px' }}>
-                            <div className='group-item'>
-                                <FormLabel>Org Admins Group</FormLabel>
-                                <Input type="text" name="orgAdmins" size='lg' variant='soft' required
-                                    value={orgAdmins} onChange={(e) => setOrgAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
+                        <div style={{ display: 'flex' }}>
+                            <div style={{ width: '50%', padding: '8px' }}>
+                                <FormLabel>Token</FormLabel>
+                                <Textarea name="token" required size='lg' variant='soft'
+                                    style={{ minHeight: '214px', fontFamily: 'monospace' }}
+                                    value={token} onChange={(e) => setToken(e.target.value)}
                                 />
+                                <FormHelperText style={{ padding: '8px 0' }}><InfoOutlined fontSize='small' /> gcloud auth print-access-token {accountID ? accountID : '{account-id}'} --lifetime=7200</FormHelperText>
                             </div>
-                            <div className='group-item'>
-                                <FormLabel>Billing Admins Group</FormLabel>
-                                <Input type="text" name="billingAdmins" size='lg' variant='soft' required
-                                    value={billingAdmins} onChange={(e) => setBillingAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
-                                />
-                            </div>
-                            <div className='group-item'>
-                                <FormLabel>Workspace Monitoring Admins Group</FormLabel>
-                                <Input type="text" name="monitoringAdmins" size='lg' variant='soft'
-                                    value={monitoringWorkspaceAdmins} onChange={(e) => setMonitoringWorkspaceAdmins(e.target.value)}
-                                    endDecorator={<span>@{domain}</span>}
-                                />
+                            <div style={{ width: '50%', padding: '8px' }}>
+                                <div className='group-item'>
+                                    <FormLabel>Org Admins Group</FormLabel>
+                                    <Input type="text" name="orgAdmins" size='lg' variant='soft' required
+                                        value={orgAdmins} onChange={(e) => setOrgAdmins(e.target.value)}
+                                        endDecorator={<span>@{domain}</span>}
+                                    />
+                                </div>
+                                <div className='group-item'>
+                                    <FormLabel>Billing Admins Group</FormLabel>
+                                    <Input type="text" name="billingAdmins" size='lg' variant='soft' required
+                                        value={billingAdmins} onChange={(e) => setBillingAdmins(e.target.value)}
+                                        endDecorator={<span>@{domain}</span>}
+                                    />
+                                </div>
+                                <div className='group-item'>
+                                    <FormLabel>Workspace Monitoring Admins Group</FormLabel>
+                                    <Input type="text" name="monitoringAdmins" size='lg' variant='soft'
+                                        value={monitoringWorkspaceAdmins} onChange={(e) => setMonitoringWorkspaceAdmins(e.target.value)}
+                                        endDecorator={<span>@{domain}</span>}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
+                }
 
-            <div className='onboard-button-bar'>
-                <Button variant='outlined' size='lg' onClick={() => proceedToReview()}
-                    disabled={!canProceed()}
-                >
-                    Review</Button>
+                <div className='onboard-button-bar'>
+                    <Button variant='outlined' size='lg' onClick={() => proceedToReview()}
+                        disabled={!canProceed()}
+                    >
+                        Review</Button>
+                </div>
             </div>
         </div>
     );

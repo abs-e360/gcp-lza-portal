@@ -41,15 +41,23 @@ const isValidEmail = (email: string): boolean => {
 
 const isValidDomain = (domain: string): boolean => {
     domain = domain.trim();
+    if (domain.length === 0) {
+        return false;
+    }
 
     if (domain[0] === '.') {
         return false;
     }
 
     const parts = domain.split('.');
-    if (parts.length < 2) {
+    if (parts.length !== 2) {
         return false;
     }
+
+    if (parts[0].length === 0 || parts[1].length === 0) {
+        return false;
+    }
+
     return true
 }
 

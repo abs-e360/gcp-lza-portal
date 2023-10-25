@@ -3,12 +3,9 @@ import { configureStore, createSlice } from '@reduxjs/toolkit'
 
 export interface EnvSubData {
     primaryRegionCIDR: string;
-
     secondaryRegionCIDR: string;
-
     // Shared env will not have this
     serviceCIDR: string;
-
     serviceIP: string;
 };
 
@@ -21,8 +18,7 @@ export interface OnboardState {
     firstName: string;
     lastName: string;
     email: string;
-    orgName: string;
-    domain: string;
+    organization: Organization;
     networkCIDR: string;
     billingID: string;
     accountID: string;
@@ -42,6 +38,16 @@ export interface OnboardState {
     }
 };
 
+export interface Organization {
+    name: string;
+    streetAddress: string;
+    locality: string; // city
+    administrativeArea: string; // state
+    postalCode: string;
+    regionCode: string;
+    domain: string;
+}
+
 export interface RootState {
     // Consistent hash id to identify uniqueness of payload
     consistentId: string;
@@ -60,8 +66,15 @@ const initialState: RootState = {
         firstName: '',
         lastName: '',
         email: '',
-        orgName: '',
-        domain: '',
+        organization: {
+            name: '',
+            streetAddress: '',
+            locality: '',
+            administrativeArea: '',
+            postalCode: '',
+            regionCode: 'US',
+            domain: '',
+        },
         networkCIDR: '',
         billingID: '',
         accountID: '',

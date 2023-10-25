@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://shopify-webhook-abs-e360-main.buildndeploy.co';
+const API_BASE_URL: string = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000';
 
 class APIs {
     private baseUrl: string;
@@ -24,7 +24,14 @@ class APIs {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
-        return await response.json();
+        // Check if the response is JSON or not.
+        const contentType = response.headers.get('Content-Type');
+        if (contentType?.includes('application/json')) {
+            return await response.json();
+        }
+
+        // If not JSON, return the whole response
+        return await response;
     }
 
     /**
