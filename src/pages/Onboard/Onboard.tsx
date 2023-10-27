@@ -7,7 +7,7 @@ import {
     FormLabel, Button, Card, Typography, Textarea, Tooltip, FormHelperText, FormControl, LinearProgress,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
-import { InfoOutlined, } from '@mui/icons-material';
+import { Cloud, InfoOutlined, } from '@mui/icons-material';
 
 import Environment from '../../components/Environment/Environment';
 
@@ -20,6 +20,7 @@ import {
 
 import './Onboard.css';
 import GooglePlacesAutocomplete, { geocodeByPlaceId } from 'react-google-places-autocomplete';
+import CloudIdentity from '../../components/CloudIdentity';
 
 const NetworkBreakdown = (props: any) => {
     const { environments } = props;
@@ -139,14 +140,24 @@ const Onboard = () => {
         return true;
     }
 
-    const handleDomainChange = (e: any) => {
+    // const handleDomainChange = (e: any) => {
+    //     setHasCloudIdentity(false);
+    //     setDomain(e.target.value);
+    //     setDomainHelperText('e.g. example.com');
+    // }
+
+    const handleEmailChange = (e: any) => {
+        setEmail(e.target.value);
         setHasCloudIdentity(false);
-        setDomain(e.target.value);
-        setDomainHelperText('e.g. example.com');
+        if (isValidEmail(e.target.value)) {
+            setDomain(e.target.value.split('@')[1]);
+        }
     }
 
     const checkDomainCloudIdentity = () => {
         if (!isValidDomain(domain)) return;
+        if (hasCloudIdentity) return;
+
         setShowProgress(true);
 
         service.get('/cloud-identity?domain=' + domain).then((response) => {
@@ -204,13 +215,7 @@ const Onboard = () => {
                             value={lastName} onChange={(e) => setLastName(e.target.value)} />
                     </div>
                 </div>
-                <div className='input-single'>
-                    <FormLabel>Contact Email</FormLabel>
-                    <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
-                        value={email} onChange={(e) => setEmail(e.target.value)}
-                        error={!isValidEmail(email)}
-                    />
-                </div>
+
                 <div style={{ padding: '8px' }}>
                     <FormControl>
                         <FormLabel>Organization Name</FormLabel>
@@ -220,8 +225,8 @@ const Onboard = () => {
                     </FormControl>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ textAlign: 'left', minWidth: '50%', padding: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
+                    <div style={{ textAlign: 'left', padding: '8px', flex: 1 }}>
                         <FormControl>
                             <FormLabel>Postal Address</FormLabel>
                             <GooglePlacesAutocomplete
@@ -241,22 +246,90 @@ const Onboard = () => {
                             />
                         </FormControl>
                     </div>
-                    <div style={{ padding: '8px' }}>
+                    <div style={{ padding: '8px', flex: 1 }}>
                         <FormControl>
                             <FormLabel>Postal Code</FormLabel>
                             <Input size='lg' variant='soft' required
-                                value={postalCode} onChange={(e) => { setPostalCode(e.target.value) }}
+                                value={postalCode}
+                                onChange={(e) => { setPostalCode(e.target.value) }}
                                 readOnly
+                                sx={{
+                                    '--Input-focusedHighlight': 'none',
+                                    '&:focus-within': {
+                                        borderColor: 'none',
+                                    },
+                                }}
                             />
                         </FormControl>
                     </div>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
+                    <div style={{ padding: '8px', flex: 1 }}>
+                        <FormControl error={!isValidEmail(email)}>
+                            <FormLabel>Contact Email</FormLabel>
+                            <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
+                                value={email}
+                                onChange={handleEmailChange}
+                                onBlur={checkDomainCloudIdentity}
+                            />
+                        </FormControl>
+                    </div>
+                    <div style={{ padding: '8px', flex: 1 }}>
+                        <FormControl error={!isValidDomain(domain)} >
+                            <FormLabel>Domain</FormLabel>
+                            <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
+                                value={domain}
+                                sx={{
+                                    '--Input-focusedHighlight': 'none',
+                                    '&:focus-within': {
+                                        borderColor: 'none',
+                                    },
+                                }}
+                                // onChange={handleDomainChange}
+                                // onBlur={checkDomainCloudIdentity}
+                                readOnly
+                                endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
+                            />
+                            <FormHelperText>
+                                {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
+                            </FormHelperText>
+                        </FormControl>
+                    </div>
+                </div>
+
+                <div>
+                    <h2>Account</h2>
+                    {!hasCloudIdentity &&
+                        <div style={{ padding: '16px', textAlign: 'center' }}>
+                            <Card size='lg' color='primary'>
+                                <Typography color='primary'>
+                                    A new Google Identity and GCP account will be provisioned.
+                                </Typography>
+                                <Typography color='primary'>
+                                    You will be billed directly by <a href='https://www.e360.com/'>e360</a>.
+                                </Typography>
+                            </Card>
+                        </div>
+                    }
+                    {hasCloudIdentity &&
+                        <CloudIdentity
+                            accountID={accountID} setAccountID={setAccountID}
+                            billingID={billingID} setBillingID={setBillingID}
+                            token={token} setToken={setToken}
+                            orgAdmins={orgAdmins} setOrgAdmins={setOrgAdmins}
+                            domain={domain}
+                            billingAdmins={billingAdmins} setBillingAdmins={setBillingAdmins}
+                            monitoringWorkspaceAdmins={monitoringWorkspaceAdmins} setMonitoringWorkspaceAdmins={setMonitoringWorkspaceAdmins}
+                        />
+                    }
+                </div>
+
                 <h2>Configuration</h2>
-                <RegionConfig primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
+                <RegionConfig
+                    primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
                     setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
                 />
-
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ padding: '8px', minWidth: '50%' }}>
                         <FormControl error={!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)}>
@@ -276,96 +349,11 @@ const Onboard = () => {
                         </Tooltip>
                     </div>
                 </div>
-
                 <div style={{ padding: '8px' }}>
                     {showDetails && <NetworkBreakdown environments={environments} />}
                 </div>
 
-                <div id='account-configuration'>
-                    <div>
-                        <h2>Account</h2>
-                    </div>
-                </div>
 
-                <div style={{ padding: '8px' }}>
-                    <FormControl
-                        error={!isValidDomain(domain)} //color={hasCloudIdentity ? 'success' : 'primary'}
-                    >
-                        <FormLabel>Domain</FormLabel>
-                        <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
-                            value={domain} onChange={handleDomainChange}
-                            onBlur={checkDomainCloudIdentity}
-                            endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
-                        />
-                        <FormHelperText>
-                            {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
-                        </FormHelperText>
-                    </FormControl>
-
-                </div>
-
-                {!hasCloudIdentity &&
-                    <div style={{ padding: '16px', textAlign: 'center' }}>
-                        <Card size='lg' color='primary'>
-                            <Typography color='primary'>
-                                A new Google Identity and GCP account will be provisioned.
-                            </Typography>
-                            <Typography color='primary'>
-                                You will be billed directly by <a href='https://www.e360.com/'>e360</a>.
-                            </Typography>
-                        </Card>
-                    </div>
-                }
-                {hasCloudIdentity &&
-                    <div>
-                        <div className='input-pair'>
-                            <div>
-                                <FormLabel>Account ID</FormLabel>
-                                <Input type="text" name="accountID" size='lg' variant='soft' required
-                                    value={accountID} onChange={(e) => setAccountID(e.target.value)} />
-                            </div>
-                            <div>
-                                <FormLabel>Billing ID</FormLabel>
-                                <Input type="text" name="billingID" size='lg' variant='soft' required
-                                    placeholder='012345-6789AB-CDEF01'
-                                    value={billingID} onChange={(e) => setBillingID(e.target.value)} />
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex' }}>
-                            <div style={{ width: '50%', padding: '8px' }}>
-                                <FormLabel>Token</FormLabel>
-                                <Textarea name="token" required size='lg' variant='soft'
-                                    style={{ minHeight: '214px', fontFamily: 'monospace' }}
-                                    value={token} onChange={(e) => setToken(e.target.value)}
-                                />
-                                <FormHelperText style={{ padding: '8px 0' }}><InfoOutlined fontSize='small' /> gcloud auth print-access-token {accountID ? accountID : '{account-id}'} --lifetime=7200</FormHelperText>
-                            </div>
-                            <div style={{ width: '50%', padding: '8px' }}>
-                                <div className='group-item'>
-                                    <FormLabel>Org Admins Group</FormLabel>
-                                    <Input type="text" name="orgAdmins" size='lg' variant='soft' required
-                                        value={orgAdmins} onChange={(e) => setOrgAdmins(e.target.value)}
-                                        endDecorator={<span>@{domain}</span>}
-                                    />
-                                </div>
-                                <div className='group-item'>
-                                    <FormLabel>Billing Admins Group</FormLabel>
-                                    <Input type="text" name="billingAdmins" size='lg' variant='soft' required
-                                        value={billingAdmins} onChange={(e) => setBillingAdmins(e.target.value)}
-                                        endDecorator={<span>@{domain}</span>}
-                                    />
-                                </div>
-                                <div className='group-item'>
-                                    <FormLabel>Workspace Monitoring Admins Group</FormLabel>
-                                    <Input type="text" name="monitoringAdmins" size='lg' variant='soft'
-                                        value={monitoringWorkspaceAdmins} onChange={(e) => setMonitoringWorkspaceAdmins(e.target.value)}
-                                        endDecorator={<span>@{domain}</span>}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
 
                 <div className='onboard-button-bar'>
                     <Button variant='outlined' size='lg' onClick={() => proceedToReview()}
