@@ -18,19 +18,30 @@ function CloudIdentity(props: any) {
         navigator.clipboard.writeText(tokenCommand);
     }
 
+    const validateAccountID = (value: string) => {
+        return /^[0-9]+$/.test(value);
+    }
+    const validateBillingID = (value: string) => {
+        return /^[0-9A-F\\-]+$/.test(value);
+    }
+
     return (
         <div>
             <div className='input-pair'>
                 <div>
-                    <FormLabel>Account ID</FormLabel>
-                    <Input type="text" name="accountID" size='lg' variant='soft' required
-                        value={accountID} onChange={(e) => setAccountID(e.target.value)} />
+                    <FormControl error={!validateAccountID(accountID)}>
+                        <FormLabel>Account ID</FormLabel>
+                        <Input type="text" name="accountID" size='lg' variant='soft' required
+                            value={accountID} onChange={(e) => setAccountID(e.target.value)} />
+                    </FormControl>
                 </div>
                 <div>
-                    <FormLabel>Billing ID</FormLabel>
-                    <Input type="text" name="billingID" size='lg' variant='soft' required
-                        placeholder='012345-6789AB-CDEF01'
-                        value={billingID} onChange={(e) => setBillingID(e.target.value)} />
+                    <FormControl error={!validateBillingID(billingID)}>
+                        <FormLabel>Billing ID</FormLabel>
+                        <Input type="text" name="billingID" size='lg' variant='soft' required
+                            placeholder='012345-6789AB-CDEF01'
+                            value={billingID} onChange={(e) => setBillingID(e.target.value)} />
+                    </FormControl>
                 </div>
             </div>
             <div style={{ display: 'flex' }}>
