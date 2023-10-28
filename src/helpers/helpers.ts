@@ -36,29 +36,11 @@ const keyList: string[][] = [
 ];
 
 const isValidEmail = (email: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    return /^[^\s@]+@[^\s@]+\.[a-z0-9]+$/i.test(email);
 };
 
 const isValidDomain = (domain: string): boolean => {
-    domain = domain.trim();
-    if (domain.length === 0) {
-        return false;
-    }
-
-    if (domain[0] === '.') {
-        return false;
-    }
-
-    const parts = domain.split('.');
-    if (parts.length !== 2) {
-        return false;
-    }
-
-    if (parts[0].length === 0 || parts[1].length === 0) {
-        return false;
-    }
-
-    return true
+    return /^[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}$/i.test(domain);
 }
 
 const isValidIPv4 = (ipAddress: string): boolean => {

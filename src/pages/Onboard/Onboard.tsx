@@ -4,10 +4,11 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
-    FormLabel, Button, Card, Typography, Textarea, Tooltip, FormHelperText, FormControl, LinearProgress,
+    FormLabel, Button, Card, Typography,
+    Tooltip, FormHelperText, FormControl, LinearProgress,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
-import { Cloud, InfoOutlined, } from '@mui/icons-material';
+// import { Cloud, InfoOutlined, } from '@mui/icons-material';
 
 import Environment from '../../components/Environment/Environment';
 
@@ -168,7 +169,7 @@ const Onboard = () => {
         }).catch((error) => {
             console.log(error);
             setHasCloudIdentity(false);
-            setDomainHelperText('');
+            setDomainHelperText('A new Cloud Identity will be created!');
             setShowProgress(false);
         });
     }
