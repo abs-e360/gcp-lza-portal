@@ -167,6 +167,9 @@ const Onboard = () => {
             setLocality(addr.locality);
             setStreetAddress(addr.address_lines[0]);
             setPostalCode(addr.postal_code);
+
+            setBillingID(response.billing_id);
+
         }).catch((error) => {
             // not customer billing account created.
             setCustomerFound(false);
