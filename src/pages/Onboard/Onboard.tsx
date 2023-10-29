@@ -8,7 +8,6 @@ import {
     Tooltip, FormHelperText, FormControl, LinearProgress,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
-// import { Cloud, InfoOutlined, } from '@mui/icons-material';
 
 import Environment from '../../components/Environment/Environment';
 
@@ -49,12 +48,21 @@ const Onboard = () => {
         }
     }, [termsAccepted, navigate]);
 
+    const [customerFound, setCustomerFound] = useState(false);
+    const [customerId, setCustomerId] = useState('');
 
     const [firstName, setFirstName] = useState(onboard.firstName);
     const [lastName, setLastName] = useState(onboard.lastName);
     const [email, setEmail] = useState(onboard.email);
     const [orgName, setOrgName] = useState(onboard.organization.name);
     const [domain, setDomain] = useState(onboard.organization.domain);
+
+    const [streetAddress, setStreetAddress] = useState(onboard.organization.streetAddress);
+    const [locality, setLocality] = useState(onboard.organization.locality);
+    const [postalCode, setPostalCode] = useState(onboard.organization.postalCode);
+    const [administrativeArea, setAdministrativeArea] = useState(onboard.organization.administrativeArea);
+
+    const [addrPlace, setAddrPlace] = useState<any>(null);
 
     const [billingID, setBillingID] = useState(onboard.billingID);
     const [accountID, setAccountID] = useState(onboard.accountID);
@@ -70,13 +78,8 @@ const Onboard = () => {
 
     const [showDetails, setShowDetails] = useState(false);
     const [hasCloudIdentity, setHasCloudIdentity] = useState(false);
-    const [domainHelperText, setDomainHelperText] = useState('e.g. example.com');
+    const [domainHelperText, setDomainHelperText] = useState('');
     const [showProgress, setShowProgress] = useState(false);
-
-    const [streetAddress, setStreetAddress] = useState(onboard.organization.streetAddress);
-    const [locality, setLocality] = useState(onboard.organization.locality);
-    const [postalCode, setPostalCode] = useState(onboard.organization.postalCode);
-    const [administrativeArea, setAdministrativeArea] = useState(onboard.organization.administrativeArea);
 
     const environments = buildNetworkStructure(networkCIDR);
 
@@ -141,18 +144,34 @@ const Onboard = () => {
         return true;
     }
 
-    // const handleDomainChange = (e: any) => {
-    //     setHasCloudIdentity(false);
-    //     setDomain(e.target.value);
-    //     setDomainHelperText('e.g. example.com');
-    // }
-
     const handleEmailChange = (e: any) => {
         setEmail(e.target.value);
         setHasCloudIdentity(false);
         if (isValidEmail(e.target.value)) {
             setDomain(e.target.value.split('@')[1]);
         }
+    }
+
+    const triggerCloudIdentityFound = () => {
+        setHasCloudIdentity(true);
+        setDomainHelperText('Cloud Identity found!');
+        service.get('/customer/' + domain).then((response) => {
+            console.log(response);
+
+            setCustomerFound(true);
+            setOrgName(response.org_display_name);
+            setCustomerId(response.name);
+
+            var addr = response.org_postal_address;
+            setAdministrativeArea(addr.administrative_area);
+            setLocality(addr.locality);
+            setStreetAddress(addr.address_lines[0]);
+            setPostalCode(addr.postal_code);
+        }).catch((error) => {
+            // not customer billing account created.
+            setCustomerFound(false);
+            setPostalCode('');
+        });
     }
 
     const checkDomainCloudIdentity = () => {
@@ -163,8 +182,7 @@ const Onboard = () => {
 
         service.get('/cloud-identity?domain=' + domain).then((response) => {
             console.log(response);
-            setHasCloudIdentity(true);
-            setDomainHelperText('Cloud Identity found!');
+            triggerCloudIdentityFound();
             setShowProgress(false);
         }).catch((error) => {
             console.log(error);
@@ -193,6 +211,8 @@ const Onboard = () => {
     }
 
     const processAddress = (place: any) => {
+        setAddrPlace(place);
+        console.log(place);
         // Get potential postal code matches from the place id.
         geocodeByPlaceId(place?.value?.place_id).then((results) => {
             parseAddress(results[0]);
@@ -203,7 +223,7 @@ const Onboard = () => {
         <div style={{ paddingTop: '16px' }}>
             <h1>Landing Zone Provisioning</h1>
             <div style={{ textAlign: 'left' }}>
-                <h2>Contact</h2>
+                <h2>Primary Contact</h2>
                 <div className='input-pair'>
                     <div>
                         <FormLabel>First name</FormLabel>
@@ -217,43 +237,105 @@ const Onboard = () => {
                     </div>
                 </div>
 
-                <div style={{ padding: '8px' }}>
-                    <FormControl>
-                        <FormLabel>Organization Name</FormLabel>
-                        <Input size='lg' variant='soft' required
-                            value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
-                        {/* <FormHelperText>Used for your GCP billing account</FormHelperText> */}
+                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
+                    <FormControl error={!isValidEmail(email)} style={{ padding: '8px', flex: 1 }}>
+                        <FormLabel>Contact Email</FormLabel>
+                        <Input type="text" name="email"
+                            required placeholder="user@example.com" size='lg' variant='soft'
+                            value={email}
+                            onChange={handleEmailChange}
+                            onBlur={checkDomainCloudIdentity}
+                        />
+                    </FormControl>
+                    <FormControl style={{ padding: '8px', flex: 1 }} error={!isValidDomain(domain)} >
+                        <FormLabel>Domain</FormLabel>
+                        <Input type="text" name="domain"
+                            required readOnly disabled
+                            placeholder="example.com" size='lg' variant='soft'
+                            value={domain}
+                            sx={{
+                                '--Input-focusedHighlight': 'none',
+                                '&:focus-within': {
+                                    borderColor: 'none',
+                                },
+                            }}
+                            endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
+                        />
+                        <FormHelperText>
+                            {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
+                        </FormHelperText>
                     </FormControl>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
-                    <div style={{ textAlign: 'left', padding: '8px', flex: 1 }}>
-                        <FormControl>
-                            <FormLabel>Postal Address</FormLabel>
-                            <GooglePlacesAutocomplete
-                                apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-                                apiOptions={{ language: 'en', region: 'US' }}
-                                minLengthAutocomplete={3}
-                                autocompletionRequest={{
-                                    componentRestrictions: {
-                                        country: 'us',
+                {!customerFound &&
+                    <>
+                        <div style={{ padding: '8px' }}>
+                            <FormControl>
+                                <FormLabel>Organization Name</FormLabel>
+                                <Input size='lg' variant='soft' required
+                                    value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
+                            </FormControl>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <FormControl style={{ flex: 2, padding: '8px' }}>
+                                <FormLabel>Postal Address</FormLabel>
+                                <GooglePlacesAutocomplete
+                                    apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+                                    apiOptions={{ language: 'en', region: 'US' }}
+                                    minLengthAutocomplete={3}
+                                    autocompletionRequest={{
+                                        componentRestrictions: {
+                                            country: 'us',
+                                        },
+                                        types: ['address'],
+                                    }}
+                                    selectProps={{
+                                        placeholder: 'Postal Address',
+                                        onChange: (place: any) => { processAddress(place) },
+                                        value: addrPlace,
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl style={{ flex: 1, padding: '8px' }}>
+                                <FormLabel>Postal Code</FormLabel>
+                                <Input size='lg' variant='soft' required
+                                    value={postalCode}
+                                    // onChange={(e) => { setPostalCode(e.target.value) }}
+                                    disabled
+                                    readOnly
+                                    sx={{
+                                        '--Input-focusedHighlight': 'none',
+                                        '&:focus-within': {
+                                            borderColor: 'none',
+                                        },
+                                    }}
+                                />
+                            </FormControl>
+                        </div>
+                    </>}
+
+                {customerFound &&
+                    <>
+                        <FormControl style={{ padding: '8px' }}>
+                            <FormLabel>Organization Name</FormLabel>
+                            <Input size='lg' variant='soft'
+                                required readOnly disabled
+                                value={orgName}
+                                sx={{
+                                    '--Input-focusedHighlight': 'none',
+                                    '&:focus-within': {
+                                        borderColor: 'none',
                                     },
-                                    types: ['address'],
-                                }}
-                                selectProps={{
-                                    placeholder: 'Postal Address',
-                                    onChange: (place: any) => { processAddress(place) }
                                 }}
                             />
+                            <FormHelperText>{customerId}</FormHelperText>
                         </FormControl>
-                    </div>
-                    <div style={{ padding: '8px', flex: 1 }}>
-                        <FormControl>
-                            <FormLabel>Postal Code</FormLabel>
+                        <FormControl style={{ padding: '8px' }}>
+                            <FormLabel>Street Address</FormLabel>
                             <Input size='lg' variant='soft' required
-                                value={postalCode}
-                                onChange={(e) => { setPostalCode(e.target.value) }}
+                                value={streetAddress}
                                 readOnly
+                                disabled
                                 sx={{
                                     '--Input-focusedHighlight': 'none',
                                     '&:focus-within': {
@@ -262,43 +344,48 @@ const Onboard = () => {
                                 }}
                             />
                         </FormControl>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
-                    <div style={{ padding: '8px', flex: 1 }}>
-                        <FormControl error={!isValidEmail(email)}>
-                            <FormLabel>Contact Email</FormLabel>
-                            <Input type="text" name="email" required placeholder="user@example.com" size='lg' variant='soft'
-                                value={email}
-                                onChange={handleEmailChange}
-                                onBlur={checkDomainCloudIdentity}
-                            />
-                        </FormControl>
-                    </div>
-                    <div style={{ padding: '8px', flex: 1 }}>
-                        <FormControl error={!isValidDomain(domain)} >
-                            <FormLabel>Domain</FormLabel>
-                            <Input type="text" name="domain" required placeholder="example.com" size='lg' variant='soft'
-                                value={domain}
-                                sx={{
-                                    '--Input-focusedHighlight': 'none',
-                                    '&:focus-within': {
-                                        borderColor: 'none',
-                                    },
-                                }}
-                                // onChange={handleDomainChange}
-                                // onBlur={checkDomainCloudIdentity}
-                                readOnly
-                                endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
-                            />
-                            <FormHelperText>
-                                {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
-                            </FormHelperText>
-                        </FormControl>
-                    </div>
-                </div>
-
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px' }}>
+                            <FormControl>
+                                <FormLabel>City</FormLabel>
+                                <Input size='lg' variant='soft' required
+                                    value={locality}
+                                    readOnly disabled
+                                    sx={{
+                                        '--Input-focusedHighlight': 'none',
+                                        '&:focus-within': {
+                                            borderColor: 'none',
+                                        },
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl>
+                                <FormLabel>State</FormLabel>
+                                <Input size='lg' variant='soft' required
+                                    value={administrativeArea}
+                                    readOnly disabled
+                                    sx={{
+                                        '--Input-focusedHighlight': 'none',
+                                        '&:focus-within': {
+                                            borderColor: 'none',
+                                        },
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl>
+                                <FormLabel>Postal Code</FormLabel>
+                                <Input size='lg' variant='soft' required
+                                    value={postalCode}
+                                    disabled readOnly
+                                    sx={{
+                                        '--Input-focusedHighlight': 'none',
+                                        '&:focus-within': {
+                                            borderColor: 'none',
+                                        },
+                                    }}
+                                />
+                            </FormControl>
+                        </div>
+                    </>}
                 <div>
                     <h2>Account</h2>
                     {!hasCloudIdentity &&

@@ -48,6 +48,7 @@ function CloudIdentity(props: any) {
                 <div style={{ width: '50%', padding: '8px' }}>
                     <FormLabel>Token</FormLabel>
                     <Textarea name="token" required size='lg' variant='soft'
+                        placeholder='Paste your admin token here.'
                         style={{ minHeight: '214px', fontFamily: 'monospace' }}
                         value={token} onChange={(e) => setToken(e.target.value)}
                     />
