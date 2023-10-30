@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
     FormLabel, Button, Card, Typography,
-    Tooltip, FormHelperText, FormControl, LinearProgress,
+    Tooltip, FormHelperText, FormControl, LinearProgress, CircularProgress,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
 
@@ -21,6 +21,7 @@ import {
 import './Onboard.css';
 import GooglePlacesAutocomplete, { geocodeByPlaceId } from 'react-google-places-autocomplete';
 import CloudIdentity from '../../components/CloudIdentity';
+import Account from '../../components/Account';
 
 const NetworkBreakdown = (props: any) => {
     const { environments } = props;
@@ -50,6 +51,8 @@ const Onboard = () => {
 
     const [customerFound, setCustomerFound] = useState(false);
     const [customerId, setCustomerId] = useState('');
+
+    const [addressLoading, setAddressLoading] = useState(false);
 
     const [firstName, setFirstName] = useState(onboard.firstName);
     const [lastName, setLastName] = useState(onboard.lastName);
@@ -155,6 +158,7 @@ const Onboard = () => {
     const triggerCloudIdentityFound = () => {
         setHasCloudIdentity(true);
         setDomainHelperText('Cloud Identity found!');
+        setAddressLoading(true);
         service.get('/customer/' + domain).then((response) => {
             console.log(response);
 
@@ -170,10 +174,13 @@ const Onboard = () => {
 
             setBillingID(response.billing_id);
 
+            setAddressLoading(false);
         }).catch((error) => {
             // not customer billing account created.
             setCustomerFound(false);
             setPostalCode('');
+
+            setAddressLoading(false);
         });
     }
 
@@ -270,7 +277,12 @@ const Onboard = () => {
                     </FormControl>
                 </div>
 
-                {!customerFound &&
+                {addressLoading &&
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
+                        <CircularProgress />
+                    </div>}
+
+                {!addressLoading && !customerFound &&
                     <>
                         <div style={{ padding: '8px' }}>
                             <FormControl>
@@ -317,7 +329,7 @@ const Onboard = () => {
                         </div>
                     </>}
 
-                {customerFound &&
+                {!addressLoading && customerFound &&
                     <>
                         <FormControl style={{ padding: '8px' }}>
                             <FormLabel>Organization Name</FormLabel>
@@ -389,32 +401,17 @@ const Onboard = () => {
                             </FormControl>
                         </div>
                     </>}
-                <div>
-                    <h2>Account</h2>
-                    {!hasCloudIdentity &&
-                        <div style={{ padding: '16px', textAlign: 'center' }}>
-                            <Card size='lg' color='primary'>
-                                <Typography color='primary'>
-                                    A new Google Identity and GCP account will be provisioned.
-                                </Typography>
-                                <Typography color='primary'>
-                                    You will be billed directly by <a href='https://www.e360.com/'>e360</a>.
-                                </Typography>
-                            </Card>
-                        </div>
-                    }
-                    {hasCloudIdentity &&
-                        <CloudIdentity
-                            accountID={accountID} setAccountID={setAccountID}
-                            billingID={billingID} setBillingID={setBillingID}
-                            token={token} setToken={setToken}
-                            orgAdmins={orgAdmins} setOrgAdmins={setOrgAdmins}
-                            domain={domain}
-                            billingAdmins={billingAdmins} setBillingAdmins={setBillingAdmins}
-                            monitoringWorkspaceAdmins={monitoringWorkspaceAdmins} setMonitoringWorkspaceAdmins={setMonitoringWorkspaceAdmins}
-                        />
-                    }
-                </div>
+
+                <Account accountID={accountID} setAccountID={setAccountID}
+                    hasCloudIdentity={hasCloudIdentity}
+                    customerFound={customerFound}
+                    billingID={billingID} setBillingID={setBillingID}
+                    token={token} setToken={setToken}
+                    orgAdmins={orgAdmins} setOrgAdmins={setOrgAdmins}
+                    domain={domain}
+                    billingAdmins={billingAdmins} setBillingAdmins={setBillingAdmins}
+                    monitoringWorkspaceAdmins={monitoringWorkspaceAdmins} setMonitoringWorkspaceAdmins={setMonitoringWorkspaceAdmins}
+                />
 
                 <h2>Configuration</h2>
                 <RegionConfig

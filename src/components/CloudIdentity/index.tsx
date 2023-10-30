@@ -10,7 +10,8 @@ import { CopyAllOutlined } from '@mui/icons-material';
 function CloudIdentity(props: any) {
     const { accountID, setAccountID, billingID, setBillingID,
         token, setToken, orgAdmins, setOrgAdmins, domain,
-        billingAdmins, setBillingAdmins, monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins } = props;
+        billingIdReadOnly, billingAdmins, setBillingAdmins,
+        monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins } = props;
 
     const tokenCommand = `gcloud auth print-access-token ${accountID ? accountID : '{account-id}'} --lifetime=7200`;
 
@@ -40,7 +41,10 @@ function CloudIdentity(props: any) {
                         <FormLabel>Billing ID</FormLabel>
                         <Input type="text" name="billingID" size='lg' variant='soft' required
                             placeholder='012345-6789AB-CDEF01'
-                            value={billingID} onChange={(e) => setBillingID(e.target.value)} />
+                            value={billingID} onChange={(e) => setBillingID(e.target.value)}
+                            readOnly={billingIdReadOnly}
+                            disabled={billingIdReadOnly}
+                        />
                     </FormControl>
                 </div>
             </div>
