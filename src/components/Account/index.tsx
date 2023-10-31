@@ -3,13 +3,14 @@ import CloudIdentity from "../CloudIdentity";
 
 
 function Account(props: any) {
-    const { accountID, setAccountID,
+    const {
+        domain,
+        accountID, setAccountID,
         hasCloudIdentity,
         customerFound,
         billingID, setBillingID,
         token, setToken,
         orgAdmins, setOrgAdmins,
-        domain,
         billingAdmins, setBillingAdmins,
         monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins
     } = props;
@@ -17,7 +18,7 @@ function Account(props: any) {
 
     return (
         <div>
-            <h2>Account</h2>
+            <h3>Account</h3>
             {!hasCloudIdentity &&
                 <div style={{ padding: '16px', textAlign: 'center' }}>
                     <Card size='lg' color='primary'>

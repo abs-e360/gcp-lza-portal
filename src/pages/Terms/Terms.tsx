@@ -29,7 +29,7 @@ const Terms = () => {
                         By checking this box, you agree to our terms of service.
                     </label>
                 </div>
-                <Button id="terms-accept-Button" size='lg' onClick={() => navigate('/onboard')} disabled={!termsAccepted}>
+                <Button id="terms-accept-Button" size='lg' onClick={() => navigate('/contact')} disabled={!termsAccepted}>
                     Accept
                 </Button>
             </div>

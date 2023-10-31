@@ -61,6 +61,12 @@ const RegionConfig = (props: any) => {
                         size='lg'
                         onChange={(_, value) => setPrimaryRegion(value)}
                         value={primaryRegion}
+                        sx={{
+                            '--Input-focusedHighlight': 'none',
+                            '&:focus-within': {
+                                borderColor: 'none',
+                            },
+                        }}
                     />
                 </div>
             </div>
@@ -76,6 +82,12 @@ const RegionConfig = (props: any) => {
                         size='lg'
                         onChange={(_, value) => setSecondaryRegion(value)}
                         value={secondaryRegion}
+                        sx={{
+                            '--Input-focusedHighlight': 'none',
+                            '&:focus-within': {
+                                borderColor: 'none',
+                            },
+                        }}
                     />
                 </div>
             </div>

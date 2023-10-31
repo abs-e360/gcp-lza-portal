@@ -8,15 +8,20 @@ import { CopyAllOutlined } from '@mui/icons-material';
 
 
 function CloudIdentity(props: any) {
-    const { accountID, setAccountID, billingID, setBillingID,
+    const {
+        accountID, setAccountID, billingID, setBillingID,
         token, setToken, orgAdmins, setOrgAdmins, domain,
         billingIdReadOnly, billingAdmins, setBillingAdmins,
         monitoringWorkspaceAdmins, setMonitoringWorkspaceAdmins } = props;
 
     const tokenCommand = `gcloud auth print-access-token ${accountID ? accountID : '{account-id}'} --lifetime=7200`;
+    const orgIdCommand = `gcloud organizations list | grep '${domain ? domain + "'" : '{domain}'} | awk '{print $2}'`;
 
     const copyTokenCommand = () => {
         navigator.clipboard.writeText(tokenCommand);
+    }
+    const copyOrgIdCommand = () => {
+        navigator.clipboard.writeText(orgIdCommand);
     }
 
     const validateAccountID = (value: string) => {
@@ -28,31 +33,42 @@ function CloudIdentity(props: any) {
 
     return (
         <div>
-            <div className='input-pair'>
-                <div>
-                    <FormControl error={!validateAccountID(accountID)}>
-                        <FormLabel>Account ID</FormLabel>
-                        <Input type="text" name="accountID" size='lg' variant='soft' required
-                            value={accountID} onChange={(e) => setAccountID(e.target.value)} />
-                    </FormControl>
-                </div>
-                <div>
-                    <FormControl error={!validateBillingID(billingID)}>
-                        <FormLabel>Billing ID</FormLabel>
-                        <Input type="text" name="billingID" size='lg' variant='soft' required
-                            placeholder='012345-6789AB-CDEF01'
-                            value={billingID} onChange={(e) => setBillingID(e.target.value)}
-                            readOnly={billingIdReadOnly}
-                            disabled={billingIdReadOnly}
-                        />
-                    </FormControl>
-                </div>
+            <div style={{ display: 'flex', }}>
+                <FormControl style={{ padding: '8px', flex: 1 }}
+                    error={!validateAccountID(accountID)}>
+                    <FormLabel>Account ID</FormLabel>
+                    <Input type="text" name="accountID" size='lg' variant='soft' required
+                        value={accountID} onChange={(e) => setAccountID(e.target.value)}
+                    />
+                    <FormHelperText>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <div>{orgIdCommand}</div>
+                            <div>
+                                <Tooltip title='Copy get account id command'>
+                                    <IconButton onClick={copyOrgIdCommand}>
+                                        <CopyAllOutlined fontSize='small' />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
+                        </div>
+                    </FormHelperText>
+                </FormControl>
+                <FormControl style={{ padding: '8px', flex: 1 }}
+                    error={!validateBillingID(billingID)}>
+                    <FormLabel>Billing ID</FormLabel>
+                    <Input type="text" name="billingID" size='lg' variant='soft' required
+                        placeholder='012345-6789AB-CDEF01'
+                        value={billingID} onChange={(e) => setBillingID(e.target.value)}
+                        readOnly={billingIdReadOnly}
+                        disabled={billingIdReadOnly}
+                    />
+                </FormControl>
             </div>
             <div style={{ display: 'flex' }}>
-                <div style={{ width: '50%', padding: '8px' }}>
+                <div style={{ flex: 1, padding: '8px' }}>
                     <FormLabel>Token</FormLabel>
                     <Textarea name="token" required size='lg' variant='soft'
-                        placeholder='Paste your admin token here.'
+                        placeholder='Paste your admin token here'
                         style={{ minHeight: '214px', fontFamily: 'monospace' }}
                         value={token} onChange={(e) => setToken(e.target.value)}
                     />
@@ -69,7 +85,7 @@ function CloudIdentity(props: any) {
                         </div>
                     </FormHelperText>
                 </div>
-                <div style={{ width: '50%', padding: '8px' }}>
+                <div style={{ flex: 1, padding: '8px' }}>
                     <div className='group-item'>
                         <FormLabel>Org Admins Group</FormLabel>
                         <Input type="text" name="orgAdmins" size='lg' variant='soft' required

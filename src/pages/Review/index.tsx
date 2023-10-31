@@ -45,8 +45,8 @@ const Review = () => {
     const firstName = onboard.firstName;
     const lastName = onboard.lastName;
     const email = onboard.email;
-    const orgName = onboard.orgName;
-    const domain = onboard.domain;
+    const orgName = onboard.organization.name;
+    const domain = onboard.organization.domain;
 
     const billingID = onboard.billingID;
     const accountID = onboard.accountID;
@@ -56,8 +56,10 @@ const Review = () => {
     const monitoringWorkspaceAdmins = onboard.groups.monitoringWorkspaceAdmins;
     const token = onboard.token;
 
-    const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
-    const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
+    // const [primaryRegion, setPrimaryRegion] = useState(onboard.primaryRegion);
+    // const [secondaryRegion, setSecondaryRegion] = useState(onboard.secondaryRegion);
+    const primaryRegion = onboard.primaryRegion;
+    const secondaryRegion = onboard.secondaryRegion;
     const networkCIDR = onboard.networkCIDR;
 
     const [useExistingAcct, setUseExistingAcct] = useState(onboard.token !== '');
@@ -91,7 +93,7 @@ const Review = () => {
             <h2>Configuration</h2>
             <RegionConfig readOnly
                 primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
-                setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
+            // setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
             />
             <div style={{ display: 'flex' }}>
                 <div style={{ width: '50%', padding: '8px' }}>

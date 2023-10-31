@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Input from '@mui/joy/Input';
 import {
-    FormLabel, Button, Card, Typography,
-    Tooltip, FormHelperText, FormControl, LinearProgress, CircularProgress,
+    FormLabel, Button, Card,
+    Tooltip, FormHelperText, FormControl,
 } from '@mui/joy';
 import RegionConfig from '../../components/RegionConfig';
 
@@ -14,14 +14,12 @@ import Environment from '../../components/Environment/Environment';
 import { setId, setOnboardState } from '../../store/store';
 import { service } from '../../service/service';
 import {
-    isValidDomain, isValidEmail, isValidIPv4, isValidSlash15,
-    buildNetworkStructure
+    isValidIPv4, isValidSlash15, buildNetworkStructure
 } from '../../helpers/helpers';
 
 import './Onboard.css';
-import GooglePlacesAutocomplete, { geocodeByPlaceId } from 'react-google-places-autocomplete';
-import CloudIdentity from '../../components/CloudIdentity';
 import Account from '../../components/Account';
+// import PrimaryContact from '../../components/PrimaryContact';
 
 const NetworkBreakdown = (props: any) => {
     const { environments } = props;
@@ -40,7 +38,7 @@ const Onboard = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const { termsAccepted, onboard } = useSelector((state: any) => state.onboard);
+    const { termsAccepted, onboard, customerFound, identityFound } = useSelector((state: any) => state.onboard);
 
     useEffect(() => {
         // Check if terms of service have been accepted.  if not redirect to terms page.
@@ -49,10 +47,11 @@ const Onboard = () => {
         }
     }, [termsAccepted, navigate]);
 
-    const [customerFound, setCustomerFound] = useState(false);
-    const [customerId, setCustomerId] = useState('');
+    // const [addressLoading, setAddressLoading] = useState(false);
+    // const [showProgress, setShowProgress] = useState(false);
 
-    const [addressLoading, setAddressLoading] = useState(false);
+    // const [customerFound] = useState(onboard.customerFound);
+    // console.log(customerFound);
 
     const [firstName, setFirstName] = useState(onboard.firstName);
     const [lastName, setLastName] = useState(onboard.lastName);
@@ -65,7 +64,7 @@ const Onboard = () => {
     const [postalCode, setPostalCode] = useState(onboard.organization.postalCode);
     const [administrativeArea, setAdministrativeArea] = useState(onboard.organization.administrativeArea);
 
-    const [addrPlace, setAddrPlace] = useState<any>(null);
+    // const [addrPlace, setAddrPlace] = useState<any>(null);
 
     const [billingID, setBillingID] = useState(onboard.billingID);
     const [accountID, setAccountID] = useState(onboard.accountID);
@@ -80,9 +79,8 @@ const Onboard = () => {
     const [networkCIDR, setNetworkCIDR] = useState(onboard.networkCIDR);
 
     const [showDetails, setShowDetails] = useState(false);
-    const [hasCloudIdentity, setHasCloudIdentity] = useState(false);
-    const [domainHelperText, setDomainHelperText] = useState('');
-    const [showProgress, setShowProgress] = useState(false);
+    // const [hasCloudIdentity, setHasCloudIdentity] = useState(false);
+    // const [domainHelperText, setDomainHelperText] = useState('');
 
     const environments = buildNetworkStructure(networkCIDR);
 
@@ -124,19 +122,18 @@ const Onboard = () => {
     }
 
     const canProceed = (): boolean => {
-        if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR || !postalCode) {
-            return false;
-        }
-
-        if (!isValidDomain(domain)) {
-            return false;
-        }
+        // if (!firstName || !lastName || !email || !orgName || !domain || !networkCIDR || !postalCode) {
+        //     return false;
+        // }
+        // if (!isValidDomain(domain)) {
+        //     return false;
+        // }
 
         if (!isValidIPv4(networkCIDR) || !isValidSlash15(networkCIDR)) {
             return false;
         }
 
-        if (!hasCloudIdentity) {
+        if (!identityFound) {
             return true;
         }
 
@@ -147,263 +144,14 @@ const Onboard = () => {
         return true;
     }
 
-    const handleEmailChange = (e: any) => {
-        setEmail(e.target.value);
-        setHasCloudIdentity(false);
-        if (isValidEmail(e.target.value)) {
-            setDomain(e.target.value.split('@')[1]);
-        }
-    }
-
-    const triggerCloudIdentityFound = () => {
-        setHasCloudIdentity(true);
-        setDomainHelperText('Cloud Identity found!');
-        setAddressLoading(true);
-        service.get('/customer/' + domain).then((response) => {
-            console.log(response);
-
-            setCustomerFound(true);
-            setOrgName(response.org_display_name);
-            setCustomerId(response.name);
-
-            var addr = response.org_postal_address;
-            setAdministrativeArea(addr.administrative_area);
-            setLocality(addr.locality);
-            setStreetAddress(addr.address_lines[0]);
-            setPostalCode(addr.postal_code);
-
-            setBillingID(response.billing_id);
-
-            setAddressLoading(false);
-        }).catch((error) => {
-            // not customer billing account created.
-            setCustomerFound(false);
-            setPostalCode('');
-
-            setAddressLoading(false);
-        });
-    }
-
-    const checkDomainCloudIdentity = () => {
-        if (!isValidDomain(domain)) return;
-        if (hasCloudIdentity) return;
-
-        setShowProgress(true);
-
-        service.get('/cloud-identity?domain=' + domain).then((response) => {
-            console.log(response);
-            triggerCloudIdentityFound();
-            setShowProgress(false);
-        }).catch((error) => {
-            console.log(error);
-            setHasCloudIdentity(false);
-            setDomainHelperText('A new Cloud Identity will be created!');
-            setShowProgress(false);
-        });
-    }
-
-    const parseAddress = (selected: any) => {
-        console.log(selected);
-        for (var i = 0; i < selected.address_components.length; i++) {
-            var addrComp = selected.address_components[i];
-            for (var j = 0; j < addrComp.types.length; j++) {
-                if (addrComp.types[j] === "postal_code") {
-                    setPostalCode(addrComp.long_name);
-                } else if (addrComp.types[j] === "route") {
-                    setStreetAddress(addrComp.long_name);
-                } else if (addrComp.types[j] === "locality") {
-                    setLocality(addrComp.long_name);
-                } else if (addrComp.types[j] === "administrative_area_level_1") {
-                    setAdministrativeArea(addrComp.long_name);
-                }
-            }
-        }
-    }
-
-    const processAddress = (place: any) => {
-        setAddrPlace(place);
-        console.log(place);
-        // Get potential postal code matches from the place id.
-        geocodeByPlaceId(place?.value?.place_id).then((results) => {
-            parseAddress(results[0]);
-        });
-    }
-
     return (
         <div style={{ paddingTop: '16px' }}>
             <h1>Landing Zone Provisioning</h1>
             <div style={{ textAlign: 'left' }}>
-                <h2>Primary Contact</h2>
-                <div className='input-pair'>
-                    <div>
-                        <FormLabel>First name</FormLabel>
-                        <Input type="text" name="firstName" required autoFocus size='lg' variant='soft'
-                            value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                    </div>
-                    <div>
-                        <FormLabel>Last name</FormLabel>
-                        <Input type="text" name="lastName" required size='lg' variant='soft'
-                            value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'top', justifyContent: 'space-between' }}>
-                    <FormControl error={!isValidEmail(email)} style={{ padding: '8px', flex: 1 }}>
-                        <FormLabel>Contact Email</FormLabel>
-                        <Input type="text" name="email"
-                            required placeholder="user@example.com" size='lg' variant='soft'
-                            value={email}
-                            onChange={handleEmailChange}
-                            onBlur={checkDomainCloudIdentity}
-                        />
-                    </FormControl>
-                    <FormControl style={{ padding: '8px', flex: 1 }} error={!isValidDomain(domain)} >
-                        <FormLabel>Domain</FormLabel>
-                        <Input type="text" name="domain"
-                            required readOnly disabled
-                            placeholder="example.com" size='lg' variant='soft'
-                            value={domain}
-                            sx={{
-                                '--Input-focusedHighlight': 'none',
-                                '&:focus-within': {
-                                    borderColor: 'none',
-                                },
-                            }}
-                            endDecorator={hasCloudIdentity ? <img alt='gcp-logo' src='/gcp-logo.png' style={{ maxHeight: 32 }} /> : null}
-                        />
-                        <FormHelperText>
-                            {showProgress ? <LinearProgress thickness={1} /> : domainHelperText}
-                        </FormHelperText>
-                    </FormControl>
-                </div>
-
-                {addressLoading &&
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-                        <CircularProgress />
-                    </div>}
-
-                {!addressLoading && !customerFound &&
-                    <>
-                        <div style={{ padding: '8px' }}>
-                            <FormControl>
-                                <FormLabel>Organization Name</FormLabel>
-                                <Input size='lg' variant='soft' required
-                                    value={orgName} onChange={(e) => { setOrgName(e.target.value) }} />
-                            </FormControl>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <FormControl style={{ flex: 2, padding: '8px' }}>
-                                <FormLabel>Postal Address</FormLabel>
-                                <GooglePlacesAutocomplete
-                                    apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-                                    apiOptions={{ language: 'en', region: 'US' }}
-                                    minLengthAutocomplete={3}
-                                    autocompletionRequest={{
-                                        componentRestrictions: {
-                                            country: 'us',
-                                        },
-                                        types: ['address'],
-                                    }}
-                                    selectProps={{
-                                        placeholder: 'Postal Address',
-                                        onChange: (place: any) => { processAddress(place) },
-                                        value: addrPlace,
-                                    }}
-                                />
-                            </FormControl>
-                            <FormControl style={{ flex: 1, padding: '8px' }}>
-                                <FormLabel>Postal Code</FormLabel>
-                                <Input size='lg' variant='soft' required
-                                    value={postalCode}
-                                    // onChange={(e) => { setPostalCode(e.target.value) }}
-                                    disabled
-                                    readOnly
-                                    sx={{
-                                        '--Input-focusedHighlight': 'none',
-                                        '&:focus-within': {
-                                            borderColor: 'none',
-                                        },
-                                    }}
-                                />
-                            </FormControl>
-                        </div>
-                    </>}
-
-                {!addressLoading && customerFound &&
-                    <>
-                        <FormControl style={{ padding: '8px' }}>
-                            <FormLabel>Organization Name</FormLabel>
-                            <Input size='lg' variant='soft'
-                                required readOnly disabled
-                                value={orgName}
-                                sx={{
-                                    '--Input-focusedHighlight': 'none',
-                                    '&:focus-within': {
-                                        borderColor: 'none',
-                                    },
-                                }}
-                            />
-                            <FormHelperText>{customerId}</FormHelperText>
-                        </FormControl>
-                        <FormControl style={{ padding: '8px' }}>
-                            <FormLabel>Street Address</FormLabel>
-                            <Input size='lg' variant='soft' required
-                                value={streetAddress}
-                                readOnly
-                                disabled
-                                sx={{
-                                    '--Input-focusedHighlight': 'none',
-                                    '&:focus-within': {
-                                        borderColor: 'none',
-                                    },
-                                }}
-                            />
-                        </FormControl>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px' }}>
-                            <FormControl>
-                                <FormLabel>City</FormLabel>
-                                <Input size='lg' variant='soft' required
-                                    value={locality}
-                                    readOnly disabled
-                                    sx={{
-                                        '--Input-focusedHighlight': 'none',
-                                        '&:focus-within': {
-                                            borderColor: 'none',
-                                        },
-                                    }}
-                                />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel>State</FormLabel>
-                                <Input size='lg' variant='soft' required
-                                    value={administrativeArea}
-                                    readOnly disabled
-                                    sx={{
-                                        '--Input-focusedHighlight': 'none',
-                                        '&:focus-within': {
-                                            borderColor: 'none',
-                                        },
-                                    }}
-                                />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel>Postal Code</FormLabel>
-                                <Input size='lg' variant='soft' required
-                                    value={postalCode}
-                                    disabled readOnly
-                                    sx={{
-                                        '--Input-focusedHighlight': 'none',
-                                        '&:focus-within': {
-                                            borderColor: 'none',
-                                        },
-                                    }}
-                                />
-                            </FormControl>
-                        </div>
-                    </>}
+                <h2 style={{ textAlign: 'center' }}>{domain}</h2>
 
                 <Account accountID={accountID} setAccountID={setAccountID}
-                    hasCloudIdentity={hasCloudIdentity}
+                    hasCloudIdentity={identityFound}
                     customerFound={customerFound}
                     billingID={billingID} setBillingID={setBillingID}
                     token={token} setToken={setToken}
@@ -413,7 +161,7 @@ const Onboard = () => {
                     monitoringWorkspaceAdmins={monitoringWorkspaceAdmins} setMonitoringWorkspaceAdmins={setMonitoringWorkspaceAdmins}
                 />
 
-                <h2>Configuration</h2>
+                <h3>Configuration</h3>
                 <RegionConfig
                     primaryRegion={primaryRegion} secondaryRegion={secondaryRegion}
                     setPrimaryRegion={setPrimaryRegion} setSecondaryRegion={setSecondaryRegion}
@@ -433,21 +181,23 @@ const Onboard = () => {
                         <Tooltip title='Display network CIDRs across all environments'>
                             <Button variant='plain' size='lg'
                                 disabled={!isValidIPv4(networkCIDR)}
-                                onClick={() => { setShowDetails(!showDetails) }}>{showDetails ? 'Hide' : 'Show'} Details</Button>
+                                onClick={() => { setShowDetails(!showDetails) }}
+                            >
+                                {showDetails ? 'Hide' : 'Show'} Details
+                            </Button>
                         </Tooltip>
                     </div>
                 </div>
                 <div style={{ padding: '8px' }}>
                     {showDetails && <NetworkBreakdown environments={environments} />}
                 </div>
-
-
-
                 <div className='onboard-button-bar'>
-                    <Button variant='outlined' size='lg' onClick={() => proceedToReview()}
+                    <Button variant='outlined' size='lg'
+                        onClick={() => proceedToReview()}
                         disabled={!canProceed()}
                     >
-                        Review</Button>
+                        Review
+                    </Button>
                 </div>
             </div>
         </div>

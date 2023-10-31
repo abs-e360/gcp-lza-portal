@@ -55,13 +55,20 @@ export interface RootState {
     // Terms and conditions accepted
     termsAccepted: boolean;
 
-    // Onboard state
+    // True if the customer has already been created
+    customerFound: boolean;
+
+    identityFound: boolean;
+
+    // Onboard state.  This is persisted
     onboard: OnboardState;
 };
 
 const initialState: RootState = {
     consistentId: '',
-    termsAccepted: false,
+    termsAccepted: localStorage.getItem('termsAccepted') === 'true' ? true : false,
+    customerFound: localStorage.getItem('customerFound') === 'true' ? true : false,
+    identityFound: localStorage.getItem('identityFound') === 'true' ? true : false,
     onboard: {
         firstName: '',
         lastName: '',
@@ -163,6 +170,24 @@ export const onboardSlice = createSlice({
         },
         setTermsAccepted: (state, action) => {
             state.termsAccepted = action.payload;
+            localStorage.setItem('termsAccepted', action.payload.toString());
+        },
+        setBillingID: (state, action) => {
+            state.onboard.billingID = action.payload;
+        },
+        setCustomerFound: (state, action) => {
+            state.customerFound = action.payload;
+            localStorage.setItem('customerFound', action.payload.toString());
+        },
+        setIdentityFound: (state, action) => {
+            state.identityFound = action.payload;
+            localStorage.setItem('identityFound', action.payload.toString());
+        },
+        setContact: (state, action) => {
+            state.onboard.firstName = action.payload.firstName;
+            state.onboard.lastName = action.payload.lastName;
+            state.onboard.email = action.payload.email;
+            state.onboard.organization = action.payload.organization;
         }
     }
 });
@@ -174,4 +199,5 @@ export const store = configureStore({
     devTools: process.env.NODE_ENV !== 'production'
 });
 
-export const { setOnboardState, resetOnboardState, setTermsAccepted, setId } = onboardSlice.actions;
+export const { setOnboardState, resetOnboardState, setTermsAccepted, setId,
+    setBillingID, setCustomerFound, setIdentityFound, setContact } = onboardSlice.actions;
